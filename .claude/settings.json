@@ -1,0 +1,21 @@
+{
+  "name": "DocuMind Student Project",
+  "version": "1.0.0",
+  "description": "AI-Powered Knowledge Management System - Student Configuration",
+  "agents": {
+    "enabled": true,
+    "defaultModel": "claude-3-5-sonnet-20241022"
+  },
+  "skills": {
+    "enabled": true,
+    "directory": ".claude/skills"
+  },
+  "subagents": {
+    "enabled": true,
+    "directory": ".claude/subagents"
+  },
+  "hooks": {
+    "enabled": true,
+    "directory": ".claude/hooks"
+  }
+}

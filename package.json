@@ -1,0 +1,28 @@
+{
+  "name": "documind-student",
+  "version": "1.0.0",
+  "description": "DocuMind - AI-Powered Knowledge Management Course Project",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "jest --passWithNoTests",
+    "test:watch": "jest --watch",
+    "lint": "eslint src/ --ext .js,.ts || true",
+    "setup": "cp .env.example .env && npm install"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "eslint": "^8.56.0"
+  },
+  "dependencies": {},
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "documind",
+    "ai",
+    "rag",
+    "claude",
+    "knowledge-management"
+  ],
+  "license": "MIT"
+}
