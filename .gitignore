@@ -22,6 +22,9 @@ env/
 .claude/cache/
 .claude/tmp/
 
+# Claude Conversations
+docs/claude-conversations/
+
 # Testing
 coverage/
 .nyc_output/
