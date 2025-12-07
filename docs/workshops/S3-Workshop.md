@@ -65,7 +65,7 @@ By completing this workshop, you will:
 - [x] Understand the difference between Personal and Project Skills
 - [x] Create a custom Claude Skill for document processing
 - [x] Build a Subagent with specialized knowledge for code review
-- [x] Implement pre-task and post-task hooks for automation
+- [x] Implement SessionStart and PostToolUse hooks for automation
 - [x] Start building the DocuMind foundation (file upload & basic processing)
 - [x] Apply the skill/subagent/hook architecture to a real application
 
@@ -294,20 +294,20 @@ Example invocation
 
 **Instructions:**
 
-**Step 1: Create the Skill File (3 mins)**
+**Step 1: Create the Skill Directory (3 mins)**
 
 In your Codespace terminal:
 ```bash
-# Create project skills directory
-mkdir -p .claude/skills
+# Create project skills directory with skill folder
+mkdir -p .claude/skills/document-parser
 
-# Create the skill file
-touch .claude/skills/document-parser.md
+# Create the skill definition file
+touch .claude/skills/document-parser/skill.md
 ```
 
 **Step 2: Write the Skill Definition (7 mins)**
 
-Open `.claude/skills/document-parser.md` and add:
+Open `.claude/skills/document-parser/skill.md` and add:
 
 ```markdown
 # Document Parser Expert
@@ -364,9 +364,7 @@ Output:
 
 In your Claude Code terminal (`dsp`), type:
 ```
-/skill document-parser
-
-Analyze this text: "Project Update - November 24, 2025. Team leads discussed the DocuMind implementation timeline. Sarah will complete the database schema by Monday. John will write integration tests. Next meeting: December 1st."
+Use @document-parser to analyze this text: "Project Update - November 24, 2025. Team leads discussed the DocuMind implementation timeline. Sarah will complete the database schema by Monday. John will write integration tests. Next meeting: December 1st."
 ```
 
 **Expected Outcome:**
@@ -379,7 +377,7 @@ Claude should respond using the structured JSON format defined in your skill, ex
 Commit your progress:
 
 ```bash
-git add .claude/skills/document-parser.md
+git add .claude/skills/document-parser/skill.md
 git commit -m "feat: create document parser skill
 
 - Add document parser expert skill with structured output format
@@ -455,13 +453,13 @@ constraints: Limitations and rules
 **Step 1: Create Subagent Directory (2 mins)**
 
 ```bash
-mkdir -p .claude/subagents
-touch .claude/subagents/security-reviewer.md
+mkdir -p .claude/agents
+touch .claude/agents/security-reviewer.md
 ```
 
 **Step 2: Define the Subagent (8 mins)**
 
-Open `.claude/subagents/security-reviewer.md`:
+Open `.claude/agents/security-reviewer.md` and add:
 
 ```markdown
 # Security Review Subagent
@@ -528,67 +526,19 @@ Provide security review in this structure:
 
 ### Approved Items ✓
 [List security controls that are correctly implemented]
-
-## Example Review
-```python
-# Code being reviewed:
-def login(username, password):
-    query = f"SELECT * FROM users WHERE username='{username}' AND password='{password}'"
-    result = db.execute(query)
-    return result
-```
-
-**Security Review:**
-
-### Summary
-- Overall security rating: **HIGH RISK** 🚨
-- Critical issues: 2
-- Warnings: 1
-
-### Critical Issues 🚨
-1. **SQL Injection Vulnerability**: Query uses string concatenation instead of parameterized queries. An attacker can inject SQL code through the username/password fields.
-   ```python
-   # Attack example: username = "admin' --"
-   # Results in: SELECT * FROM users WHERE username='admin' --' AND password='...'
-   ```
-
-2. **Plaintext Password Storage**: Password appears to be stored/compared in plaintext. Passwords must be hashed (bcrypt, argon2).
-
-### Warnings ⚠️
-1. No rate limiting visible - vulnerable to brute force attacks
-
-### Recommendations ✅
-```python
-# Secure implementation:
-from passlib.hash import bcrypt
-from sqlalchemy import text
-
-def login(username, password):
-    # Use parameterized query
-    query = text("SELECT * FROM users WHERE username = :username")
-    result = db.execute(query, {"username": username}).fetchone()
-
-    if result and bcrypt.verify(password, result.password_hash):
-        return result
-    return None
-```
 ```
 
 **Step 3: Invoke the Subagent (5 mins)**
 
 In Claude Code terminal:
 ```
-/subagent security-reviewer
+@security-reviewer Review this code for security issues:
 
-Review this code for security issues:
-
-```python
 def upload_file(filename, content):
     path = f"/uploads/{filename}"
     with open(path, 'w') as f:
         f.write(content)
     return path
-```
 ```
 
 **Expected Outcome:**
@@ -604,13 +554,15 @@ The subagent should identify:
 
 **Challenge (Optional Advanced Task):**
 
-Create a subagent called `.claude/subagents/doc-writer.md` that:
+Create a subagent called `.claude/agents/doc-writer.md` that:
 - Generates comprehensive documentation for code
 - Follows JSDoc or Python docstring standards
 - Creates README files with usage examples
 - Identifies undocumented functions
 
 Test it on your DocuMind code from the demo!
+
+Pro-Tip: Create this one using the Claude Skill Creator skill that you can download here: https://github.com/anthropics/skills/tree/main/skills/skill-creator (just drag the file into your skills like Mark demonstrated in the lesson)
 
 ---
 
@@ -619,7 +571,7 @@ Test it on your DocuMind code from the demo!
 Commit your progress:
 
 ```bash
-git add .claude/subagents/security-reviewer.md
+git add .claude/agents/security-reviewer.md
 git commit -m "feat: add security review subagent
 
 - Create specialized security reviewer with OWASP checklist
@@ -664,17 +616,17 @@ Relates to #12"
 
 **What are Hooks?**
 
-Hooks are automation scripts that run automatically at specific points in your workflow:
-- **Pre-task hooks**: Run *before* Claude starts a task (setup, validation)
-- **Post-task hooks**: Run *after* Claude completes a task (formatting, testing, deployment)
+Hooks are automation scripts that run automatically at specific points in Claude Code's workflow. They are configured in `.claude/settings.json` and execute shell commands or scripts.
 
-**Hook Types in Claude Flow:**
-1. `pre-task` - Before task execution
-2. `post-task` - After task completion
-3. `pre-edit` - Before file editing
-4. `post-edit` - After file editing
-5. `session-start` - When Claude session begins
-6. `session-end` - When Claude session ends
+**Hook Event Types:**
+| Event | When it Runs |
+|-------|--------------|
+| `PreToolUse` | Before Claude uses a tool (can block) |
+| `PostToolUse` | After Claude uses a tool |
+| `UserPromptSubmit` | When user submits a prompt |
+| `SessionStart` | When Claude session begins |
+| `SessionEnd` | When Claude session ends |
+| `Stop` | When Claude finishes responding |
 
 **Why Use Hooks?**
 - Automate repetitive tasks (formatting, linting, testing)
@@ -684,36 +636,44 @@ Hooks are automation scripts that run automatically at specific points in your w
 
 ---
 
-### Exercise 3.1: Create a Pre-Task Hook
+### Exercise 3.1: Extend the Existing SessionStart Hook
 
-**Task:** Create a hook that runs before every task to validate the environment.
+**Task:** Extend the existing SessionStart hook (installed by Dialogue Reporter) to add environment validation.
+
+> **Note:** The Dialogue Reporter you installed earlier already created `.claude/hooks/SessionStart.sh`. Instead of replacing it, we'll create a validation script that the existing hook can call, or we'll learn how to extend hooks.
 
 **Instructions:**
 
-**Step 1: Create Hooks Directory (2 mins)**
+**Step 1: Review Existing Hooks (2 mins)**
 
+First, let's see what hooks already exist from Dialogue Reporter.  Ask Claude Code:
 ```bash
-mkdir -p .claude/hooks
-touch .claude/hooks/pre-task-validator.sh
-chmod +x .claude/hooks/pre-task-validator.sh
+What do the current hooks do?
 ```
 
-**Step 2: Write the Hook Script (5 mins)**
+**Step 2: Create a Validation Script (5 mins)**
 
-Open `.claude/hooks/pre-task-validator.sh`:
+Instead of overwriting the existing SessionStart.sh, we'll create a separate validation script (in terminal):
+
+```bash
+touch .claude/hooks/ValidateEnvironment.sh
+chmod +x .claude/hooks/ValidateEnvironment.sh
+```
+
+Open `.claude/hooks/ValidateEnvironment.sh` and add:
 
 ```bash
 #!/bin/bash
-# Pre-Task Validation Hook
-# Runs before Claude executes any task
+# Environment Validation Script
+# Called by SessionStart hook to validate project environment
 
-echo "🔍 Pre-Task Validator Running..."
+echo "🔍 Environment Validator Running..."
 echo ""
 
 # Check 1: Verify we're in the right directory
 if [ ! -f "package.json" ]; then
     echo "❌ ERROR: Not in project root directory"
-    exit 1
+    exit 2  # Exit code 2 = blocking error shown to Claude
 fi
 echo "✅ In project root directory"
 
@@ -734,7 +694,7 @@ if [ -f ".env.example" ] && [ ! -f ".env" ]; then
     echo "   Run: cp .env.example .env"
 fi
 
-# Check 4: Verify git status is clean (optional warning)
+# Check 4: Verify git status
 if command -v git &> /dev/null; then
     if [ -n "$(git status --porcelain)" ]; then
         echo "⚠️  WARNING: Uncommitted changes detected"
@@ -744,13 +704,85 @@ if command -v git &> /dev/null; then
     fi
 fi
 
-# Check 5: Log the task start
+# Check 5: Log the validation
 timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-echo "$timestamp - Pre-task validation completed" >> .claude/hooks/task.log
+echo "$timestamp - Environment validated" >> .claude/hooks/session.log
 
 echo ""
-echo "✅ Pre-task validation complete - ready to proceed"
+echo "✅ Environment validation complete - ready to proceed"
 ```
+
+**Step 3: Extend the Existing SessionStart Hook (3 mins)**
+
+Now we need to modify the existing `SessionStart.sh` to also call our validation script. Open `.claude/hooks/SessionStart.sh` and add this line at the end (before any final exit):
+
+```bash
+# Add this line to call our validation script
+.claude/hooks/ValidateEnvironment.sh
+```
+
+**Alternative: Add a Second SessionStart Hook Entry**
+
+If you don't want to modify the Dialogue Reporter hook, you can add a second entry in `.claude/settings.json`. The hooks array can have multiple entries that all run.
+
+> **Important for Codespace users:** Your `.claude/settings.json` already has hooks from Dialogue Reporter. You need to ADD to the existing file, not replace it. Open the file and add the ValidateEnvironment entry to the SessionStart array.
+
+Here's what your complete settings.json should look like after adding the validation hook:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/SessionStart.sh"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/ValidateEnvironment.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/UserPromptSubmit.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/Stop.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+
+**Important notes about hook configuration:**
+- Hooks are registered in `.claude/settings.json`, NOT a separate config file
+- Hook commands run from the project root, so `.claude/hooks/` paths work directly
+- Exit code `0` = success, exit code `2` = blocking error shown to Claude
+- The `type` can be `"command"` (shell) or `"prompt"` (LLM evaluation)
+- Multiple hook entries for the same event all run in sequence
+- **Don't delete existing Dialogue Reporter hooks** (UserPromptSubmit, Stop) - they capture your conversations
 
 ---
 
@@ -759,205 +791,220 @@ echo "✅ Pre-task validation complete - ready to proceed"
 Commit your progress:
 
 ```bash
-git add .claude/hooks/pre-task-validator.sh .claude/hooks/config.json
-git commit -m "feat: implement pre-task validation hook
+git add .claude/hooks/ValidateEnvironment.sh .claude/settings.json
+git commit -m "feat: add environment validation hook
 
 - Add environment validation checks (directories, dependencies)
 - Check git status and working tree cleanliness
-- Log task execution for audit trail
+- Log validation for audit trail
+- Extends existing Dialogue Reporter SessionStart hook
 
 Relates to #12"
 ```
 
 ---
 
-**Step 3: Register the Hook (3 mins)**
-
-Create `.claude/hooks/config.json`:
-
-```json
-{
-  "hooks": {
-    "pre-task": [
-      {
-        "name": "Environment Validator",
-        "script": ".claude/hooks/pre-task-validator.sh",
-        "enabled": true
-      }
-    ],
-    "post-task": [],
-    "pre-edit": [],
-    "post-edit": []
-  },
-  "settings": {
-    "stopOnError": true,
-    "logLevel": "info"
-  }
-}
-```
-
 **Step 4: Test the Hook (5 mins)**
 
 ```bash
-# Test the hook manually
-./.claude/hooks/pre-task-validator.sh
+# Test the validation script manually first
+./.claude/hooks/ValidateEnvironment.sh
 
 # Expected output:
-# 🔍 Pre-Task Validator Running...
+# 🔍 Environment Validator Running...
 # ✅ In project root directory
 # ✅ .claude directory exists
 # ✅ docs directory exists
 # ✅ src directory exists
 # ✅ Git working tree clean
-# ✅ Pre-task validation complete
+# ✅ Environment validation complete - ready to proceed
+```
+
+Then start Claude Code to see both hooks run automatically:
+```bash
+dsp
 ```
 
 ---
 
-### Exercise 3.2: Create a Post-Edit Hook for Auto-Formatting
+### Exercise 3.2: Create a PostToolUse Hook for Auto-Formatting
 
-**Task:** Create a hook that automatically formats code after Claude edits a file.
+**Task:** Create a hook that automatically formats code after Claude writes or edits a file.
 
 **Instructions:**
 
 **Step 1: Create the Hook Script (5 mins)**
 
 ```bash
-touch .claude/hooks/post-edit-formatter.sh
-chmod +x .claude/hooks/post-edit-formatter.sh
+touch .claude/hooks/FormatOnSave.sh
+chmod +x .claude/hooks/FormatOnSave.sh
 ```
 
-Open `.claude/hooks/post-edit-formatter.sh`:
+Open `.claude/hooks/FormatOnSave.sh` and add:
 
 ```bash
 #!/bin/bash
-# Post-Edit Auto-Formatter Hook
-# Runs after Claude edits a file
+# PostToolUse Auto-Formatter Hook
+# Runs after Claude uses Write or Edit tools
 
-FILE=$1  # File that was edited (passed by Claude)
+# Read the JSON input from stdin (Claude provides tool context)
+INPUT=$(cat)
 
-if [ -z "$FILE" ]; then
-    echo "❌ No file specified"
-    exit 1
+# Extract the file path from the tool input
+# The structure varies by tool, so we check for common patterns
+FILE=$(echo "$INPUT" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null)
+
+if [ -z "$FILE" ] || [ "$FILE" = "null" ]; then
+    # No file path found, exit silently
+    exit 0
 fi
 
-echo "🎨 Auto-formatting $FILE..."
+# Only format if file exists
+if [ ! -f "$FILE" ]; then
+    exit 0
+fi
 
 # Determine file type and format accordingly
 case "$FILE" in
     *.py)
-        # Python: Use black (if available)
         if command -v black &> /dev/null; then
-            black "$FILE" --quiet
-            echo "✅ Python formatted with black"
-        else
-            echo "⚠️  black not installed - skipping Python formatting"
+            black "$FILE" --quiet 2>/dev/null
         fi
         ;;
-
-    *.js|*.jsx)
-        # JavaScript: Use prettier (if available)
+    *.js|*.jsx|*.ts|*.tsx)
         if command -v prettier &> /dev/null; then
             prettier --write "$FILE" > /dev/null 2>&1
-            echo "✅ JavaScript formatted with prettier"
-        else
-            echo "⚠️  prettier not installed - skipping JS formatting"
         fi
         ;;
-
     *.md)
-        # Markdown: Basic cleanup (trailing spaces)
-        sed -i 's/[[:space:]]*$//' "$FILE"
-        echo "✅ Markdown cleaned (trailing spaces removed)"
-        ;;
-
-    *)
-        echo "ℹ️  No formatter configured for this file type"
+        # Markdown: Remove trailing whitespace
+        sed -i 's/[[:space:]]*$//' "$FILE" 2>/dev/null
         ;;
 esac
-
-# Log the formatting action
-timestamp=$(date +"%Y-%m-%d %H:%M:%S")
-echo "$timestamp - Formatted $FILE" >> .claude/hooks/format.log
 
 exit 0
 ```
 
-**Step 2: Update Hook Configuration**
+**Step 2: Update settings.json with the New Hook**
 
-Update `.claude/hooks/config.json`:
+Update `.claude/settings.json` to add the PostToolUse hook. This combines with the existing Dialogue Reporter hooks:
 
 ```json
 {
   "hooks": {
-    "pre-task": [
+    "SessionStart": [
       {
-        "name": "Environment Validator",
-        "script": ".claude/hooks/pre-task-validator.sh",
-        "enabled": true
+        "matcher": "startup",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/SessionStart.sh"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/ValidateEnvironment.sh"
+          }
+        ]
       }
     ],
-    "post-task": [],
-    "pre-edit": [],
-    "post-edit": [
+    "PostToolUse": [
       {
-        "name": "Auto Formatter",
-        "script": ".claude/hooks/post-edit-formatter.sh",
-        "enabled": true,
-        "passFileArgument": true
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/FormatOnSave.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/UserPromptSubmit.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/Stop.sh"
+          }
+        ]
       }
     ]
-  },
-  "settings": {
-    "stopOnError": false,
-    "logLevel": "info"
   }
 }
 ```
 
+**Key configuration details:**
+- `"matcher": "Write|Edit"` - Only runs for Write and Edit tools (regex pattern)
+- The hook receives JSON via stdin with tool context
+- Use `jq` to parse the JSON and extract the file path
+- Existing Dialogue Reporter hooks (SessionStart.sh, UserPromptSubmit.sh, Stop.sh) are preserved
+
 **Step 3: Test the Hook**
 
 ```bash
-# Create a messy Python file
-cat > test.py << 'EOF'
-def hello(  ):
-    print( "Hello World"  )
-    return   True
-EOF
+# Test that the hook works by starting Claude and editing a file
+dsp
+# Then ask Claude to create a Python file - the hook will auto-format it
+create a test python file so we can test the '/workspaces/documind-mark/.claude/hooks/FormatOnSave.sh'.  verify for me that it works 
+```
 
-# Run the hook
-./.claude/hooks/post-edit-formatter.sh test.py
+---
 
-# Check if formatted (should have proper spacing)
-cat test.py
+**🔄 Git Checkpoint**
+
+Commit your hooks:
+
+```bash
+git add .claude/hooks/FormatOnSave.sh .claude/settings.json
+git commit -m "feat: add auto-formatting PostToolUse hook
+
+- Format Python files with black
+- Format JS/TS files with prettier
+- Clean trailing whitespace in Markdown
+- Preserves existing Dialogue Reporter hooks
+
+Relates to #12"
 ```
 
 ---
 
 ### Quiz 3:
 
-**Question 1:** What is the purpose of a pre-task hook?\
-   a) To run validation, setup, or preparation before Claude executes a task\
-   b) To delete files after a task\
-   c) To slow down Claude\
-   d) To replace Claude entirely
+**Question 1:** Where are Claude Code hooks configured?\
+   a) In `.claude/settings.json` under the `"hooks"` key\
+   b) In a separate `.claude/hooks/config.json` file\
+   c) In `package.json`\
+   d) Hooks cannot be configured
 
-**Question 2:** Why would you use a post-edit hook for formatting instead of asking Claude to format?\
-   a) Automation ensures consistency and saves tokens; Claude doesn't need to think about formatting\
-   b) Hooks are faster than Claude\
-   c) It's impossible to ask Claude to format code\
-   d) Post-edit hooks are required by law
+**Question 2:** What exit code should a hook return to block Claude with an error message?\
+   a) Exit code 2\
+   b) Exit code 0\
+   c) Exit code 1\
+   d) Exit code -1
 
-**Question 3:** In the post-edit-formatter hook, what does `FILE=$1` mean?\
-   a) It captures the first argument (the file path) passed to the script\
-   b) It sets the file to be named "1"\
-   c) It's a syntax error\
-   d) It deletes the first file in the directory
+**Question 3:** What does the `"matcher": "Write|Edit"` pattern do in a PostToolUse hook?\
+   a) It filters the hook to only run when Claude uses Write or Edit tools\
+   b) It matches all tools\
+   c) It writes and edits files\
+   d) It's a syntax error
 
 **Answers:**
-1. **a)** Pre-task hooks run setup/validation before task execution
-2. **a)** Hooks automate formatting consistently, saving Claude's attention for logic
-3. **a)** `$1` captures the first command-line argument (the file path)
+1. **a)** Hooks are configured in `.claude/settings.json`
+2. **a)** Exit code 2 = blocking error shown to Claude
+3. **a)** The matcher is a regex pattern that filters which tools trigger the hook
 
 ---
 
@@ -997,8 +1044,8 @@ Create a document processing pipeline that:
      - Content security issues
 
 4. **Automated Hooks**
-   - Pre-task hook validates environment
-   - Post-task hook logs the analysis results
+   - SessionStart hook validates environment
+   - PostToolUse hook auto-formats files
 
 ---
 
@@ -1092,9 +1139,7 @@ Using Claude Code with your skills and subagents:
 1. Open `dsp` (Claude Code CLI)
 2. Invoke your document-parser skill:
    ```
-   /skill document-parser
-
-   Complete the implementation of src/documind/upload_handler.py.
+   @document-parser Complete the implementation of src/documind/upload_handler.py.
 
    Requirements:
    - validate_file_path: Check for "../" path traversal, validate extensions (.txt, .md, .pdf)
@@ -1105,18 +1150,17 @@ Using Claude Code with your skills and subagents:
 
 3. After implementation, invoke your security subagent:
    ```
-   /subagent security-reviewer
-
-   Review src/documind/upload_handler.py for security vulnerabilities.
+   @security-reviewer Review src/documind/upload_handler.py for security vulnerabilities.
    ```
+   HINT: Just tell Claude to "do it"
 
 4. Fix any security issues identified
 
 **Step 2: Test with Hooks (5 mins)**
 
 ```bash
-# Run pre-task hook
-./.claude/hooks/pre-task-validator.sh
+# Run validation hook manually to validate environment
+./.claude/hooks/ValidateEnvironment.sh
 
 # Test the implementation
 python src/documind/upload_handler.py
@@ -1144,7 +1188,7 @@ Your implementation is complete when:
 - [ ] `extract_metadata` returns file stats (size, dates, word count)
 - [ ] `analyze_document` orchestrates the full pipeline
 - [ ] Security subagent finds NO critical issues
-- [ ] Pre-task hook passes all checks
+- [ ] SessionStart hook passes all checks
 - [ ] Test run produces valid JSON output
 
 ---
@@ -1153,13 +1197,11 @@ Your implementation is complete when:
 
 ### Exercise 1.1 Solution
 
-The skill file should be created at `.claude/skills/document-parser.md` with the content provided in the exercise.
+The skill file should be created at `.claude/skills/document-parser/skill.md` with the content provided in the exercise.
 
 To test:
 ```
-/skill document-parser
-
-Analyze this text: "Project Update - November 24, 2025..."
+@document-parser Analyze this text: "Project Update - November 24, 2025..."
 ```
 
 Expected output:
@@ -1186,7 +1228,7 @@ Expected output:
 
 ### Exercise 2.1 Solution
 
-The subagent should be at `.claude/subagents/security-reviewer.md`.
+The subagent should be at `.claude/agents/security-reviewer.md`.
 
 For the upload_file test code, the review should identify:
 
@@ -1511,7 +1553,7 @@ Closes #12"
 For students who finish early:
 
 ### Challenge 1: Advanced Skill - Code Explainer
-Create a skill at `.claude/skills/code-explainer.md` that:
+Create a skill at `.claude/skills/code-explainer/skill.md` that:
 - Analyzes code and explains it line-by-line
 - Identifies design patterns used
 - Suggests improvements
@@ -1520,7 +1562,7 @@ Create a skill at `.claude/skills/code-explainer.md` that:
 Test it on the upload_handler.py solution!
 
 ### Challenge 2: Testing Subagent
-Create `.claude/subagents/test-writer.md` that:
+Create `.claude/agents/test-writer.md` that:
 - Generates pytest unit tests
 - Ensures 80%+ code coverage
 - Creates fixtures and mocks
@@ -1529,41 +1571,34 @@ Create `.claude/subagents/test-writer.md` that:
 Use it to create `tests/test_upload_handler.py`!
 
 ### Challenge 3: Git Commit Hook
-Create `.claude/hooks/post-task-git.sh` that:
+Create a PostToolUse hook for git operations that:
 - Runs tests before allowing commit
 - Auto-generates commit message from changes
 - Checks for sensitive data in commits
 - Updates CHANGELOG.md automatically
-
-### Challenge 4: Full DocuMind Integration
-Extend the upload handler to:
-- Support PDF files (use PyPDF2)
-- Extract text from PDFs
-- Store analysis results in SQLite database
-- Create a simple CLI interface
 
 ---
 
 ## Troubleshooting
 
 ### Common Issue 1: Skill Not Loading
-**Problem:** `/skill document-parser` returns "Skill not found"
+**Problem:** `@document-parser` returns "Skill not found"
 
 **Solution:**
-1. Check file exists: `ls -la .claude/skills/`
-2. Verify path is `.claude/skills/document-parser.md`
+1. Check file exists: `ls -la .claude/skills/document-parser/`
+2. Verify path is `.claude/skills/document-parser/skill.md`
 3. Ensure file has content (not empty)
 4. Restart Claude Code session
 
 ---
 
 ### Common Issue 2: Hook Permission Denied
-**Problem:** `bash: ./.claude/hooks/pre-task-validator.sh: Permission denied`
+**Problem:** `bash: ./.claude/hooks/ValidateEnvironment.sh: Permission denied`
 
 **Solution:**
 ```bash
-chmod +x .claude/hooks/pre-task-validator.sh
-chmod +x .claude/hooks/post-edit-formatter.sh
+chmod +x .claude/hooks/ValidateEnvironment.sh
+chmod +x .claude/hooks/FormatOnSave.sh
 ```
 
 ---
@@ -1572,9 +1607,9 @@ chmod +x .claude/hooks/post-edit-formatter.sh
 **Problem:** Subagent doesn't provide specialized analysis
 
 **Solution:**
-1. Ensure file is at `.claude/subagents/[name].md`
+1. Ensure file is at `.claude/agents/[name].md`
 2. Include clear "Role" and "Expertise" sections
-3. Invoke with `/subagent [name]` exactly
+3. Invoke with `@[name]` (e.g., `@security-reviewer`)
 4. Check for YAML frontmatter syntax errors
 
 ---
