@@ -1,154 +1,248 @@
-# Working with the Course Repo, Workshops, and Snapshots
+# Student Workflow for Pulling Workshops into Your Project
 
-### 1. How to start the course
+This document explains exactly how you receive new workshop files from the instructor and merge them into your own project safely.
 
-1. Go to the instructor’s GitHub repo (your instructor will give you the link).
-2. Click `Fork` to create your own copy of the repo under your account.
-3. Either:
-
-   * Create a Codespace on your fork, or
-   * Clone your fork to your machine.
-
-Your main working branch will normally be:
-
-* `main` in **your fork**, not the instructor’s repo.
+You only need to follow the commands in this file. Do not invent your own Git workflow unless instructed.
 
 ---
 
-### 2. Recommended structure for your work
+## 1. Your Project Setup (What You Already Have)
 
-* Keep all your main project work on your `main` branch in your fork.
-* When a new session S1, S2, S3 starts, you continue working in the same project rather than starting over.
+You are working in:
+
+- **Your own fork** of the instructor repository.
+- On **your own `main` branch** inside your fork.
+
+You are responsible for:
+
+- Your own feature work.
+- Your own commits.
+- Your own pushes to `origin`.
+
+The instructor will **never push into your fork**.
 
 ---
 
-### 3. Getting new workshop files from the instructor
+## 2. One-Time Setup: Connect Your Fork to the Instructor Repo
 
-Your instructor will add workshop files (for example `workshops/S1-workshop.md`, `workshops/S2-workshop.md`) to **their** `main` branch.
+You must do this **once per machine per repo**.
 
-You need to link your fork to the instructor’s repo once, then pull updates when workshops are released.
-
-#### 3.1 One-time setup: add `upstream` remote
-
-In the terminal of your fork (Codespace or local):
+Run this inside your forked project:
 
 ```bash
 git remote add upstream https://github.com/mamd69/heroforge-documind.git
 git remote -v
+````
+
+Expected result:
+
+```text
+origin    https://github.com/YOUR-USERNAME/heroforge-documind.git (fetch)
+origin    https://github.com/YOUR-USERNAME/heroforge-documind.git (push)
+upstream  https://github.com/mamd69/heroforge-documind.git (fetch)
+upstream  https://github.com/mamd69/heroforge-documind.git (push)
 ```
 
-You should now see:
-
-* `origin` pointing to your fork
-* `upstream` pointing to the instructor’s original repo
-
-#### 3.2 Each time a new workshop is released
-
-1. Make sure you are on your `main` branch:
-
-   ```bash
-   git switch main
-   git status
-   ```
-
-2. Tell Git to merge the Instructor's changes (which should be safe as there are only new Workshop files)
-
-    ```bash
-   git config --global pull.rebase false   # tell Git "when I pull, I want merges"
-   ```
-    
-4. Pull the latest changes from the instructor’s `main`:
-
-   ```bash
-   git pull upstream main
-   ```
-
-   This brings in new or updated workshop files like `workshops/S2-workshop.md`.
-
-5. (Optional) Push the updated `main` back to your own fork on GitHub:
-
-   ```bash
-   git push origin main
-   ```
-
-If Git reports merge conflicts, ask for help; do not panic. Usually conflicts happen only if you edited the same files as the instructor.
+If `upstream` already exists, that is fine. Do not re-add it.
 
 ---
 
-### 4. How to use workshop files
+## 3. Where Workshops Come From
 
-For each session:
+* The instructor publishes all workshops on the **`prep-workshops` branch**.
+* Workshop files live in:
 
-* Open the corresponding workshop file in your project, for example:
+```text
+workshops/
+  S1-workshop.md
+  S2-workshop.md
+  S3-workshop.md
+```
 
-  * `workshops/S1-workshop.md`
-  * `workshops/S2-workshop.md`
-* Follow the instructions, using your existing project as the base.
-
-You generally do not need to switch branches for workshops; you keep working on `main` in your fork unless your instructor tells you otherwise.
-
----
-
-### 5. Using instructor snapshots if you get stuck
-
-The instructor provides snapshot branches like:
-
-* `S1-end` (end of Session 1)
-* `S2-end` (end of Session 2)
-* `S3-end` (end of Session 3)
-
-These snapshots contain clean, known-good versions of the project at specific points in the course.
-
-If you are badly stuck and want a clean starting point:
-
-#### Option A: New fork from scratch
-
-1. Fork the instructor’s repo again into a new GitHub repo (or delete and recreate your fork if you are comfortable doing that).
-
-2. Clone the new fork or create a Codespace on it.
-
-3. Switch to the snapshot branch you want:
-
-   ```bash
-   git switch S1-end      # or S2-end, S3-end
-   ```
-
-4. Start working from that snapshot.
-
-#### Option B: Just inspect the snapshot on GitHub
-
-If you only need to see how something is supposed to look:
-
-1. Go to the instructor’s repo on GitHub.
-2. Use the branch dropdown to select `S1-end`, `S2-end`, or `S3-end`.
-3. Browse the files (and workshops) for reference.
-4. Fix your own code in your fork based on what you see.
+* You do **not** edit these files in the instructor repo.
+* You only **pull** them into your own project.
 
 ---
 
-### 6. Summary of your day-to-day commands
+## 4. How to Get a New Workshop (This Is the Core Workflow)
 
-Most of the time you will use:
+Each time the instructor releases a new workshop, you run the following steps **exactly in this order**:
+
+```bash
+git switch main                           # make sure you are on your own main branch
+git pull upstream prep-workshops          # pull the latest workshop files from instructor
+git push origin main                      # optional: update your fork on GitHub
+```
+
+What each command does:
 
 * `git switch main`
-  Make sure you are on your main working branch.
+  Ensures you are on your own working branch.
 
-* `git pull upstream main`
-  Get the instructor’s latest updates, including new workshops.
-
-* `git status`
-  Check what files you have changed and whether your working directory is clean.
-
-* `git add .`
-  Stage your changes before saving them.
-
-* `git commit -m "Message"`
-  Save a snapshot of your work.
+* `git pull upstream prep-workshops`
+  Merges the instructor’s workshop updates into your project.
 
 * `git push origin main`
-  Upload your changes to your fork on GitHub.
+  Saves the merged result to your GitHub fork (recommended but optional).
 
-If you get stuck beyond repair, you can:
+That is the only workflow you use to receive workshops.
 
-* Either ask for help with your fork, or
-* Start fresh from one of the instructor’s snapshot branches (`S1-end`, `S2-end`, `S3-end`) as described above.
+---
+
+## 5. If You Have Local Changes When Pulling
+
+If Git warns you that you have uncommitted changes and cannot pull:
+
+Option A: You want to keep your work.
+
+```bash
+git add .
+git commit -m "WIP before pulling workshop"
+git pull upstream prep-workshops
+```
+
+Option B: You are mid-work and do not want to commit yet.
+
+```bash
+git stash
+git pull upstream prep-workshops
+git stash pop
+```
+
+Option C: You want to discard your local changes.
+
+```bash
+git reset --hard
+git clean -fd
+git pull upstream prep-workshops
+```
+
+Only use Option C if you are absolutely certain you do not need the local changes.
+
+---
+
+## 6. What You Should NOT Pull From
+
+You normally **do not pull** from these branches:
+
+* `course-start`
+* `S1-end`
+* `S2-end`
+* `S3-end`
+* Any `prep-*` branch other than `prep-workshops`
+
+Those branches are:
+
+* For instructor use
+* For demos
+* For full reset scenarios only
+
+Pulling from them during normal work can overwrite your progress.
+
+---
+
+## 7. If You Are Completely Stuck and Want a Clean Reset
+
+If your project is broken beyond recovery and you want a fresh starting point:
+
+### Option A: View a snapshot for reference only
+
+1. Go to the instructor GitHub repo.
+2. Use the branch dropdown.
+3. Select one of:
+
+   * `course-start`
+   * `S1-end`
+   * `S2-end`
+   * `S3-end`
+4. View the files directly in GitHub.
+
+This does not affect your local project.
+
+---
+
+### Option B: Full reset using a snapshot
+
+This gives you a brand-new starting point.
+
+1. Create a fresh fork of the instructor repo (or delete and recreate your existing fork).
+2. Clone the new fork or open it in a Codespace.
+3. Switch to the snapshot you want:
+
+```bash
+git switch S1-end      # or S2-end, S3-end, or course-start
+```
+
+4. Create your own working branch from that snapshot:
+
+```bash
+git switch -c main
+git push -u origin main
+```
+
+You now have a clean reset from the selected snapshot.
+
+---
+
+## 8. Daily Student Command Summary
+
+You will mostly use only these commands:
+
+```bash
+git switch main
+git pull upstream prep-workshops
+git push origin main
+```
+
+For your own work:
+
+```bash
+git status
+git add .
+git commit -m "Your message"
+git push
+```
+
+For emergencies:
+
+```bash
+git stash
+git stash pop
+```
+
+---
+
+## 9. Mental Model
+
+* Your fork = your sandbox.
+* `main` (in your fork) = your personal project line.
+* `upstream/prep-workshops` = the instructor’s live workshop feed.
+* Snapshot branches = emergency resets, not daily tools.
+
+---
+
+## 10. Golden Rules
+
+1. You only pull workshops using:
+
+   ```bash
+   git pull upstream prep-workshops
+   ```
+
+2. You never commit directly to:
+
+   * `course-start`
+   * `S1-end`, `S2-end`, `S3-end`
+   * Any instructor `prep-*` branch
+
+3. You commit only to:
+
+   * Your own `main`
+   * Or your own feature branches
+
+4. If something feels wrong, stop and ask before running destructive commands.
+
+---
+
+If you follow only what is in this file, you will never lose work and you will always receive the correct workshop files.
+
