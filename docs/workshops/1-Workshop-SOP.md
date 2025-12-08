@@ -51,7 +51,13 @@ You should now see:
    git status
    ```
 
-2. Pull the latest changes from the instructor’s `main`:
+2. Tell Git to merge the Instructor's changes (which should be safe as there are only new Workshop files)
+
+    ```bash
+   git config --global pull.rebase false   # tell Git "when I pull, I want merges"
+   ```
+    
+4. Pull the latest changes from the instructor’s `main`:
 
    ```bash
    git pull upstream main
@@ -59,7 +65,7 @@ You should now see:
 
    This brings in new or updated workshop files like `workshops/S2-workshop.md`.
 
-3. (Optional) Push the updated `main` back to your own fork on GitHub:
+5. (Optional) Push the updated `main` back to your own fork on GitHub:
 
    ```bash
    git push origin main
