@@ -33,7 +33,7 @@ You need to link your fork to the instructor’s repo once, then pull updates wh
 In the terminal of your fork (Codespace or local):
 
 ```bash
-git remote add upstream https://github.com/INSTRUCTOR-USERNAME/REPO-NAME.git
+git remote add upstream https://github.com/mamd69/heroforge-documind.git
 git remote -v
 ```
 
