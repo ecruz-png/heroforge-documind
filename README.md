@@ -6,6 +6,7 @@ Build an intelligent Q&A system for company documents using Claude, RAG, and age
 
 DocuMind is an AI chatbot that answers questions from your company's documents.
 Ask questions in natural language, get accurate answers with source citations.
+DocuMind is the accompany software to the HeroForge Agentic AI Engineering Course.
 
 ## What You'll Build (Sessions 3-10)
 
@@ -25,7 +26,8 @@ Ask questions in natural language, get accurate answers with source citations.
 1. **Fork this repository** to your GitHub account
 2. **Launch in Codespaces:** Click green `Code` button → `Codespaces` → `Create codespace on main`
 3. **Follow setup guide:** See `docs/guides/SETUP.md`
-4. **Get workshop files from your instructor**
+4. **Workshop files will be released by your instructor post lesson (in docs/workshops/)**
+5. **Follow the instrucitons in docs/workshops/Student-Workshops-SOP.md**
 
 ## Prerequisites
 
