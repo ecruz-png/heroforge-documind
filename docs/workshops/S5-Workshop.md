@@ -515,71 +515,6 @@ A well-formed GOAP plan includes:
 
 ---
 
-### Exercise 2.2: Prepare Project Structure
-
-**Task:** Ensure your project is ready for the implementation phase.
-
-**Instructions:**
-
-**Step 1: Create Required Directories (2 mins)**
-
-```bash
-# Create pipeline directory
-mkdir -p src/agents/pipeline
-touch src/agents/pipeline/__init__.py
-
-# Create plans directory (if not created by goal-planner)
-mkdir -p docs/plans
-
-# Create demo documents for testing
-mkdir -p demo-docs
-```
-
-**Step 2: Create Test Documents (2 mins)**
-
-```bash
-# Create sample markdown document
-cat > demo-docs/remote-work-policy.md << 'EOF'
-# Remote Work Policy
-
-## Overview
-Employees may work remotely up to 3 days per week with manager approval.
-
-## Requirements
-- Stable internet connection (minimum 10 Mbps)
-- Dedicated workspace
-- Availability during core hours (10 AM - 3 PM local time)
-
-## Equipment
-Company provides laptop and $500 annual stipend for home office setup.
-EOF
-
-# Create another sample document
-cat > demo-docs/expense-policy.md << 'EOF'
-# Expense Reimbursement Policy
-
-## Eligible Expenses
-- Travel: flights, hotels, ground transportation
-- Meals: up to $75/day for business travel
-- Software: pre-approved tools only
-
-## Submission Process
-1. Submit receipts within 30 days
-2. Use the expense portal at expenses.company.com
-EOF
-```
-
-**Step 3: Verify Environment Variables**
-
-```bash
-# Check required API keys from Session 4
-echo "OpenAI: ${OPENAI_API_KEY:0:10}..."
-echo "Supabase URL: ${SUPABASE_URL}"
-echo "Supabase Key: ${SUPABASE_ANON_KEY:0:10}..."
-```
-
----
-
 ### ⚠️ Verification Checkpoint: Planning Complete
 
 Before proceeding to Module 3, confirm:
@@ -588,17 +523,20 @@ Before proceeding to Module 3, confirm:
 # 1. Plan file exists
 cat docs/plans/pipeline-components-plan.md | head -20
 
-# 2. Project structure ready
-ls -la src/agents/pipeline/
-
-# 3. Demo documents exist
-ls demo-docs/
+# 2. Environment variables configured (from Session 4)
+echo "OpenAI: ${OPENAI_API_KEY:0:10}..."
+echo "Supabase URL: ${SUPABASE_URL}"
+echo "Supabase Key: ${SUPABASE_ANON_KEY:0:10}..."
 ```
 
 **If the plan doesn't exist:**
 - Re-run the goal-planner prompt
 - Ensure Claude Code has access to the PRD file
 - Check for any error messages
+
+**If environment variables are missing:**
+- Review Session 4 setup
+- Add keys to your `.env` file
 
 ---
 
@@ -630,6 +568,48 @@ ls demo-docs/
 ---
 
 ## Module 3: Swarm Implementation from Plan (10 minutes)
+
+### Prerequisites: Create Test Documents
+
+Before implementing, create sample documents for testing the pipeline:
+
+```bash
+# Create demo-docs directory and sample files
+mkdir -p demo-docs
+
+cat > demo-docs/remote-work-policy.md << 'EOF'
+# Remote Work Policy
+
+## Overview
+Employees may work remotely up to 3 days per week with manager approval.
+
+## Requirements
+- Stable internet connection (minimum 10 Mbps)
+- Dedicated workspace
+- Availability during core hours (10 AM - 3 PM local time)
+
+## Equipment
+Company provides laptop and $500 annual stipend for home office setup.
+EOF
+
+cat > demo-docs/expense-policy.md << 'EOF'
+# Expense Reimbursement Policy
+
+## Eligible Expenses
+- Travel: flights, hotels, ground transportation
+- Meals: up to $75/day for business travel
+- Software: pre-approved tools only
+
+## Submission Process
+1. Submit receipts within 30 days
+2. Use the expense portal at expenses.company.com
+EOF
+
+# Verify
+ls demo-docs/
+```
+
+---
 
 ### Concept Review
 
