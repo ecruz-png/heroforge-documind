@@ -23,11 +23,142 @@ import argparse
 import json
 import sys
 import time
+import shutil
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional, Any, Callable
 import traceback
+
+
+def get_terminal_width() -> int:
+    """Get terminal width, defaulting to 80 if unavailable."""
+    try:
+        return shutil.get_terminal_size().columns
+    except Exception:
+        return 80
+
+
+class ProgressTracker:
+    """
+    Real-time progress tracking with progress bar and ETA calculation.
+
+    Features:
+    - Visual progress bar with percentage
+    - Estimated time remaining based on rolling average
+    - Per-document status updates
+    - Thread-safe for concurrent processing
+    """
+
+    def __init__(self, total: int, bar_width: int = 40):
+        """
+        Initialize progress tracker.
+
+        Args:
+            total: Total number of items to process
+            bar_width: Width of the progress bar in characters
+        """
+        self.total = total
+        self.bar_width = bar_width
+        self.completed = 0
+        self.successful = 0
+        self.failed = 0
+        self.start_time = time.time()
+        self.processing_times: List[float] = []
+        self._lock = asyncio.Lock()
+        self._last_display_time = 0
+        self._min_display_interval = 0.1  # Minimum time between display updates
+
+    async def update(self, success: bool, processing_time: float, file_name: str = ""):
+        """
+        Update progress after processing a document.
+
+        Args:
+            success: Whether the document was processed successfully
+            processing_time: Time taken to process the document
+            file_name: Name of the processed file
+        """
+        async with self._lock:
+            self.completed += 1
+            if success:
+                self.successful += 1
+            else:
+                self.failed += 1
+            self.processing_times.append(processing_time)
+
+    def get_eta_string(self) -> str:
+        """Calculate and format estimated time remaining."""
+        if not self.processing_times or self.completed == 0:
+            return "calculating..."
+
+        # Use rolling average of last 10 documents for better accuracy
+        recent_times = self.processing_times[-10:]
+        avg_time = sum(recent_times) / len(recent_times)
+        remaining = self.total - self.completed
+        eta_seconds = avg_time * remaining
+
+        if eta_seconds < 60:
+            return f"{eta_seconds:.0f}s"
+        elif eta_seconds < 3600:
+            minutes = int(eta_seconds // 60)
+            seconds = int(eta_seconds % 60)
+            return f"{minutes}m {seconds}s"
+        else:
+            hours = int(eta_seconds // 3600)
+            minutes = int((eta_seconds % 3600) // 60)
+            return f"{hours}h {minutes}m"
+
+    def get_progress_bar(self) -> str:
+        """Generate a visual progress bar string."""
+        if self.total == 0:
+            return "[" + "=" * self.bar_width + "] 100%"
+
+        progress = self.completed / self.total
+        filled = int(self.bar_width * progress)
+        empty = self.bar_width - filled
+
+        # Use different characters for better visualization
+        bar = "█" * filled + "░" * empty
+        percentage = progress * 100
+
+        return f"[{bar}] {percentage:5.1f}%"
+
+    def get_status_line(self) -> str:
+        """Generate a complete status line with progress bar and stats."""
+        progress_bar = self.get_progress_bar()
+        eta = self.get_eta_string()
+        elapsed = time.time() - self.start_time
+
+        status = (
+            f"\r{progress_bar} | "
+            f"{self.completed}/{self.total} docs | "
+            f"✅ {self.successful} ❌ {self.failed} | "
+            f"ETA: {eta} | "
+            f"Elapsed: {elapsed:.1f}s"
+        )
+
+        # Pad with spaces to clear any previous longer output
+        terminal_width = get_terminal_width()
+        return status.ljust(terminal_width - 1)
+
+    def display(self, force: bool = False):
+        """
+        Display the current progress to stdout.
+
+        Args:
+            force: Force display even if within minimum interval
+        """
+        current_time = time.time()
+        if not force and (current_time - self._last_display_time) < self._min_display_interval:
+            return
+
+        self._last_display_time = current_time
+        print(self.get_status_line(), end="", flush=True)
+
+    def finish(self):
+        """Display final progress and move to new line."""
+        self.display(force=True)
+        print()  # New line after progress bar
 
 
 @dataclass
@@ -58,6 +189,12 @@ class PipelineMetrics:
         "embed": 0.0,
         "write": 0.0
     })
+    stage_counts: Dict[str, int] = field(default_factory=lambda: {
+        "extract": 0,
+        "chunk": 0,
+        "embed": 0,
+        "write": 0
+    })
     errors_by_stage: Dict[str, int] = field(default_factory=lambda: {
         "extract": 0,
         "chunk": 0,
@@ -87,7 +224,8 @@ class PipelineOrchestrator:
         self,
         max_parallel: int = 10,
         continue_on_error: bool = True,
-        verbose: bool = True
+        verbose: bool = True,
+        show_progress_bar: bool = True
     ):
         """
         Initialize the pipeline orchestrator.
@@ -96,12 +234,15 @@ class PipelineOrchestrator:
             max_parallel: Maximum concurrent document processing (default: 10)
             continue_on_error: Continue processing if one doc fails (default: True)
             verbose: Print progress indicators (default: True)
+            show_progress_bar: Show real-time progress bar (default: True)
         """
         self.max_parallel = max_parallel
         self.continue_on_error = continue_on_error
         self.verbose = verbose
+        self.show_progress_bar = show_progress_bar
         self.metrics = PipelineMetrics()
         self.semaphore = asyncio.Semaphore(max_parallel)
+        self.progress_tracker: Optional[ProgressTracker] = None
 
         # Import agents (lazy loading for faster startup)
         self._extractor = None
@@ -188,48 +329,63 @@ class PipelineOrchestrator:
         )
 
         start_time = time.time()
+        file_name = Path(file_path).name
 
         try:
             # Use semaphore to limit concurrency
             async with self.semaphore:
-                if self.verbose:
-                    print(f"📄 Processing: {Path(file_path).name}")
+                if self.verbose and not self.show_progress_bar:
+                    print(f"📄 Processing: {file_name}")
 
                 # Stage 1: Extract text from file
                 stage_start = time.time()
                 extracted_data = await self._stage_extract(file_path)
-                self.metrics.stage_times["extract"] += time.time() - stage_start
+                extract_time = time.time() - stage_start
+                self.metrics.stage_times["extract"] += extract_time
+                self.metrics.stage_counts["extract"] += 1
                 result.stage_completed = "extract"
 
                 # Stage 2: Chunk the extracted text
                 stage_start = time.time()
                 chunks = await self._stage_chunk(extracted_data)
-                self.metrics.stage_times["chunk"] += time.time() - stage_start
+                chunk_time = time.time() - stage_start
+                self.metrics.stage_times["chunk"] += chunk_time
+                self.metrics.stage_counts["chunk"] += 1
                 result.stage_completed = "chunk"
                 result.chunks_created = len(chunks)
 
                 # Stage 3: Generate embeddings for chunks
                 stage_start = time.time()
                 embedded_chunks = await self._stage_embed(chunks)
-                self.metrics.stage_times["embed"] += time.time() - stage_start
+                embed_time = time.time() - stage_start
+                self.metrics.stage_times["embed"] += embed_time
+                self.metrics.stage_counts["embed"] += 1
                 result.stage_completed = "embed"
                 result.embeddings_generated = len(embedded_chunks)
 
                 # Stage 4: Write to database
                 stage_start = time.time()
                 document_id = await self._stage_write(file_path, embedded_chunks, extracted_data)
-                self.metrics.stage_times["write"] += time.time() - stage_start
+                write_time = time.time() - stage_start
+                self.metrics.stage_times["write"] += write_time
+                self.metrics.stage_counts["write"] += 1
                 result.stage_completed = "write"
 
                 # Success!
                 result.status = "success"
                 result.metadata = {
                     "document_id": document_id,
-                    "file_name": Path(file_path).name,
-                    "file_type": extracted_data.get("file_type", "unknown")
+                    "file_name": file_name,
+                    "file_type": extracted_data.get("file_type", "unknown"),
+                    "stage_times": {
+                        "extract": extract_time,
+                        "chunk": chunk_time,
+                        "embed": embed_time,
+                        "write": write_time
+                    }
                 }
 
-                if self.verbose:
+                if self.verbose and not self.show_progress_bar:
                     print(f"  ✅ Success: {result.chunks_created} chunks, "
                           f"{result.embeddings_generated} embeddings")
 
@@ -240,7 +396,7 @@ class PipelineOrchestrator:
             if result.stage_completed in self.metrics.errors_by_stage:
                 self.metrics.errors_by_stage[result.stage_completed] += 1
 
-            if self.verbose:
+            if self.verbose and not self.show_progress_bar:
                 print(f"  ❌ Failed at stage '{result.stage_completed}': {str(e)[:100]}")
 
             if not self.continue_on_error:
@@ -248,6 +404,16 @@ class PipelineOrchestrator:
 
         finally:
             result.processing_time = time.time() - start_time
+
+            # Update progress tracker if available
+            if self.progress_tracker:
+                await self.progress_tracker.update(
+                    success=(result.status == "success"),
+                    processing_time=result.processing_time,
+                    file_name=file_name
+                )
+                if self.show_progress_bar:
+                    self.progress_tracker.display()
 
         return result
 
@@ -339,7 +505,17 @@ class PipelineOrchestrator:
         if self.verbose:
             print(f"\n🚀 Starting pipeline for {len(file_paths)} documents")
             print(f"   Max parallel: {self.max_parallel}")
-            print(f"   Continue on error: {self.continue_on_error}\n")
+            print(f"   Continue on error: {self.continue_on_error}")
+
+            if self.show_progress_bar:
+                print(f"   Progress tracking: enabled\n")
+            else:
+                print()
+
+        # Initialize progress tracker
+        if self.show_progress_bar:
+            self.progress_tracker = ProgressTracker(total=len(file_paths))
+            self.progress_tracker.display(force=True)
 
         # Create tasks for all documents
         tasks = [self.process_document(path) for path in file_paths]
@@ -349,6 +525,10 @@ class PipelineOrchestrator:
             results = await asyncio.gather(*tasks, return_exceptions=False)
         else:
             results = await asyncio.gather(*tasks)
+
+        # Finish progress bar
+        if self.progress_tracker and self.show_progress_bar:
+            self.progress_tracker.finish()
 
         # Update metrics
         for result in results:
@@ -391,7 +571,7 @@ class PipelineOrchestrator:
 
     def generate_report(self, results: List[ProcessingResult]) -> str:
         """
-        Generate a comprehensive processing report.
+        Generate a comprehensive processing report with bottleneck analysis.
 
         Args:
             results: List of processing results
@@ -405,63 +585,139 @@ class PipelineOrchestrator:
             if results else 0
         )
 
-        # Calculate stage breakdown
-        stage_avg = {
-            stage: time_total / max(self.metrics.successful, 1)
-            for stage, time_total in self.metrics.stage_times.items()
+        # Calculate stage breakdown with proper counts
+        stage_avg = {}
+        for stage in ["extract", "chunk", "embed", "write"]:
+            count = self.metrics.stage_counts.get(stage, 0)
+            total_time = self.metrics.stage_times.get(stage, 0.0)
+            stage_avg[stage] = total_time / max(count, 1)
+
+        # Identify bottleneck (slowest stage)
+        bottleneck_stage = max(stage_avg.keys(), key=lambda s: stage_avg[s])
+        bottleneck_time = stage_avg[bottleneck_stage]
+        total_stage_time = sum(stage_avg.values())
+        bottleneck_pct = (bottleneck_time / total_stage_time * 100) if total_stage_time > 0 else 0
+
+        # Calculate stage percentages for visualization
+        stage_pcts = {
+            stage: (time / total_stage_time * 100) if total_stage_time > 0 else 0
+            for stage, time in stage_avg.items()
         }
+
+        # Build stage bar chart
+        def make_bar(pct: float, width: int = 20) -> str:
+            filled = int(pct / 100 * width)
+            return "█" * filled + "░" * (width - filled)
 
         # Build report
         report = f"""
-╔══════════════════════════════════════════════════════════════╗
-║           DOCUMIND PIPELINE PROCESSING REPORT                ║
-╚══════════════════════════════════════════════════════════════╝
+╔══════════════════════════════════════════════════════════════════════════╗
+║                    DOCUMIND PIPELINE PROCESSING REPORT                    ║
+╚══════════════════════════════════════════════════════════════════════════╝
 
-📊 SUMMARY
-{'─' * 60}
-Total Documents:        {self.metrics.total_documents}
-✅ Successful:          {self.metrics.successful} ({self._percentage(self.metrics.successful, self.metrics.total_documents)})
-❌ Failed:              {self.metrics.failed} ({self._percentage(self.metrics.failed, self.metrics.total_documents)})
+┌──────────────────────────────────────────────────────────────────────────┐
+│ 📊 SUMMARY                                                               │
+├──────────────────────────────────────────────────────────────────────────┤
+│ Total Documents:        {self.metrics.total_documents:<10}                                        │
+│ ✅ Successful:          {self.metrics.successful:<10} ({self._percentage(self.metrics.successful, self.metrics.total_documents):>6})                             │
+│ ❌ Failed:              {self.metrics.failed:<10} ({self._percentage(self.metrics.failed, self.metrics.total_documents):>6})                             │
+└──────────────────────────────────────────────────────────────────────────┘
 
-📦 OUTPUT
-{'─' * 60}
-Total Chunks Created:   {self.metrics.total_chunks}
-Total Embeddings:       {self.metrics.total_embeddings}
-Avg Chunks/Document:    {self.metrics.total_chunks / max(self.metrics.successful, 1):.1f}
+┌──────────────────────────────────────────────────────────────────────────┐
+│ 📦 OUTPUT                                                                │
+├──────────────────────────────────────────────────────────────────────────┤
+│ Total Chunks Created:   {self.metrics.total_chunks:<10}                                        │
+│ Total Embeddings:       {self.metrics.total_embeddings:<10}                                        │
+│ Avg Chunks/Document:    {self.metrics.total_chunks / max(self.metrics.successful, 1):<10.1f}                                        │
+└──────────────────────────────────────────────────────────────────────────┘
 
-⏱️  PERFORMANCE
-{'─' * 60}
-Total Time:             {self.metrics.total_time:.2f}s
-Avg Time/Document:      {avg_time:.2f}s
-Throughput:             {self.metrics.successful / max(self.metrics.total_time, 0.001):.1f} docs/second
+┌──────────────────────────────────────────────────────────────────────────┐
+│ ⏱️  PERFORMANCE                                                           │
+├──────────────────────────────────────────────────────────────────────────┤
+│ Total Time:             {self.metrics.total_time:<10.2f}s                                       │
+│ Avg Time/Document:      {avg_time:<10.2f}s                                       │
+│ Throughput:             {self.metrics.successful / max(self.metrics.total_time, 0.001):<10.1f} docs/second                          │
+└──────────────────────────────────────────────────────────────────────────┘
 
-⚙️  STAGE BREAKDOWN (Average Times)
-{'─' * 60}
-Extract:                {stage_avg['extract']:.3f}s
-Chunk:                  {stage_avg['chunk']:.3f}s
-Embed:                  {stage_avg['embed']:.3f}s
-Write:                  {stage_avg['write']:.3f}s
+┌──────────────────────────────────────────────────────────────────────────┐
+│ ⚙️  STAGE BREAKDOWN (Average Time per Document)                           │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│ Extract  {make_bar(stage_pcts['extract'])} {stage_avg['extract']:>6.3f}s ({stage_pcts['extract']:>5.1f}%)        │
+│ Chunk    {make_bar(stage_pcts['chunk'])} {stage_avg['chunk']:>6.3f}s ({stage_pcts['chunk']:>5.1f}%)        │
+│ Embed    {make_bar(stage_pcts['embed'])} {stage_avg['embed']:>6.3f}s ({stage_pcts['embed']:>5.1f}%)        │
+│ Write    {make_bar(stage_pcts['write'])} {stage_avg['write']:>6.3f}s ({stage_pcts['write']:>5.1f}%)        │
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
 
-❌ ERRORS BY STAGE
-{'─' * 60}
-Extract failures:       {self.metrics.errors_by_stage['extract']}
-Chunk failures:         {self.metrics.errors_by_stage['chunk']}
-Embed failures:         {self.metrics.errors_by_stage['embed']}
-Write failures:         {self.metrics.errors_by_stage['write']}
-"""
+┌──────────────────────────────────────────────────────────────────────────┐
+│ 🔍 BOTTLENECK ANALYSIS                                                   │
+├──────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│ ⚠️  Slowest Stage:       {bottleneck_stage.upper():<10} ({bottleneck_time:.3f}s avg, {bottleneck_pct:.1f}% of pipeline)     │
+│                                                                          │
+│ Recommendations:                                                         │"""
+
+        # Add stage-specific recommendations
+        if bottleneck_stage == "extract":
+            report += """
+│   • Consider using faster file parsers or caching                        │
+│   • Pre-process large PDF/DOCX files                                     │"""
+        elif bottleneck_stage == "chunk":
+            report += """
+│   • Adjust chunk size for optimal performance                            │
+│   • Consider parallel chunking for large documents                       │"""
+        elif bottleneck_stage == "embed":
+            report += """
+│   • Batch embeddings API calls for efficiency                            │
+│   • Consider using a local embedding model                               │
+│   • Increase max_parallel for I/O-bound embedding calls                  │"""
+        elif bottleneck_stage == "write":
+            report += """
+│   • Use batch inserts for database writes                                │
+│   • Consider connection pooling                                          │
+│   • Enable async database operations                                     │"""
+
+        report += """
+│                                                                          │
+└──────────────────────────────────────────────────────────────────────────┘
+
+┌──────────────────────────────────────────────────────────────────────────┐
+│ ❌ ERRORS BY STAGE                                                        │
+├──────────────────────────────────────────────────────────────────────────┤
+│ Extract failures:       {:<10}                                        │
+│ Chunk failures:         {:<10}                                        │
+│ Embed failures:         {:<10}                                        │
+│ Write failures:         {:<10}                                        │
+└──────────────────────────────────────────────────────────────────────────┘""".format(
+            self.metrics.errors_by_stage['extract'],
+            self.metrics.errors_by_stage['chunk'],
+            self.metrics.errors_by_stage['embed'],
+            self.metrics.errors_by_stage['write']
+        )
 
         # Add failed documents section if any
         failed_docs = [r for r in results if r.status == "error"]
         if failed_docs:
-            report += f"\n{'─' * 60}\n"
-            report += "🔴 FAILED DOCUMENTS:\n"
-            for r in failed_docs[:10]:  # Show first 10
-                report += f"   • {Path(r.file_path).name} - Stage: {r.stage_completed}, Error: {r.error_message[:50]}...\n"
-            if len(failed_docs) > 10:
-                report += f"   ... and {len(failed_docs) - 10} more\n"
+            report += f"""
 
-        report += f"\n{'═' * 60}\n"
-        report += f"Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+┌──────────────────────────────────────────────────────────────────────────┐
+│ 🔴 FAILED DOCUMENTS ({len(failed_docs)} total)                                              │
+├──────────────────────────────────────────────────────────────────────────┤"""
+            for r in failed_docs[:5]:  # Show first 5
+                filename = Path(r.file_path).name[:30]
+                error_msg = (r.error_message or "Unknown error")[:35]
+                report += f"\n│ • {filename:<30} │ {r.stage_completed:<7} │ {error_msg:<35}│"
+            if len(failed_docs) > 5:
+                report += f"\n│   ... and {len(failed_docs) - 5} more failed documents                                    │"
+            report += "\n└──────────────────────────────────────────────────────────────────────────┘"
+
+        report += f"""
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║ Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S'):<58} ║
+╚══════════════════════════════════════════════════════════════════════════╝
+"""
 
         return report
 
@@ -725,6 +981,11 @@ Examples:
         help="Suppress progress indicators"
     )
     parser.add_argument(
+        "--no-progress-bar",
+        action="store_true",
+        help="Disable real-time progress bar (use per-file logging instead)"
+    )
+    parser.add_argument(
         "--json-output",
         help="Save results to JSON file"
     )
@@ -741,7 +1002,8 @@ Examples:
     orchestrator = PipelineOrchestrator(
         max_parallel=args.max_parallel,
         continue_on_error=not args.no_continue_on_error,
-        verbose=not args.quiet
+        verbose=not args.quiet,
+        show_progress_bar=not args.no_progress_bar and not args.quiet
     )
 
     # Process documents
