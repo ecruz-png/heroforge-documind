@@ -280,7 +280,9 @@ Coordinator (reports completion)
 
 **Step 3: Define Agent Interfaces (7 mins)**
 
-Create `docs/spec/documind/agent-interfaces.md`:
+Create `docs/spec/documind/agent-interfaces.md`:  
+
+**Key insight:** The agent interfaces doc is the contract that Claude Flow agents use to generate consistent, interoperable code. Without it, the generated scripts might not work together properly.
 
 ```markdown
 # DocuMind Agent Interfaces
@@ -549,67 +551,25 @@ echo "Supabase Key: ${SUPABASE_ANON_KEY:0:10}..."
    d) A method for compressing files
 
 **Question 2:** Why use a goal-planner agent before implementing code?\
-   a) To identify dependencies, create milestones, and define success criteria upfront\
-   b) To make the code run faster\
+   a) To make the code run faster\
+   b) To identify dependencies, create milestones, and define success criteria upfront\
    c) Because Claude Code requires it\
    d) To reduce the number of files
 
 **Question 3:** What should a good implementation plan include?\
-   a) Milestones, preconditions, actions, success criteria, and dependencies\
+   a) Just the programming language to use\
    b) Only file names\
-   c) Just the programming language to use\
+   c) Milestones, preconditions, actions, success criteria, and dependencies\
    d) Marketing materials
 
 **Answers:**
 1. **a)** GOAP dynamically creates plans by analyzing goals, preconditions, and success criteria
-2. **a)** Planning upfront identifies dependencies, creates milestones, and defines how to verify success
-3. **a)** Good plans include milestones, preconditions, actions, success criteria, and dependencies
+2. **b)** Planning upfront identifies dependencies, creates milestones, and defines how to verify success
+3. **c)** Good plans include milestones, preconditions, actions, success criteria, and dependencies
 
 ---
 
 ## Module 3: Swarm Implementation from Plan (10 minutes)
-
-### Prerequisites: Create Test Documents
-
-Before implementing, create sample documents for testing the pipeline:
-
-```bash
-# Create demo-docs directory and sample files
-mkdir -p demo-docs
-
-cat > demo-docs/remote-work-policy.md << 'EOF'
-# Remote Work Policy
-
-## Overview
-Employees may work remotely up to 3 days per week with manager approval.
-
-## Requirements
-- Stable internet connection (minimum 10 Mbps)
-- Dedicated workspace
-- Availability during core hours (10 AM - 3 PM local time)
-
-## Equipment
-Company provides laptop and $500 annual stipend for home office setup.
-EOF
-
-cat > demo-docs/expense-policy.md << 'EOF'
-# Expense Reimbursement Policy
-
-## Eligible Expenses
-- Travel: flights, hotels, ground transportation
-- Meals: up to $75/day for business travel
-- Software: pre-approved tools only
-
-## Submission Process
-1. Submit receipts within 30 days
-2. Use the expense portal at expenses.company.com
-EOF
-
-# Verify
-ls demo-docs/
-```
-
----
 
 ### Concept Review
 
@@ -769,9 +729,9 @@ Before proceeding to Module 4, confirm:
 | Check | Command | Expected |
 |-------|---------|----------|
 | Plan exists | `ls docs/plans/pipeline-components-plan.md` | File present |
-| Scripts created | `ls src/agents/pipeline/*.py \| wc -l` | 5 or 6 files |
+| Scripts created | `ls src/agents/pipeline/*.py \| wc -l` | 5 to 7 files, including the extractor, chunker, embedder, writer, and orchestrate agent (you may have some bonus agents too!) |
 | Syntax valid | `python -m py_compile src/agents/pipeline/*.py` | No errors |
-| Extractor works | `python src/agents/pipeline/extractor.py demo-docs/remote-work-policy.md` | JSON output |
+| Extractor works | `python src/agents/pipeline/extractor.py demo-docs/[choose_file_name].md` | JSON output |
 
 **If any script is missing or has errors:**
 - Ask Claude to fix the specific error
@@ -813,14 +773,14 @@ Notice what just happened:
 ### Quiz 3:
 
 **Question 1:** What is the benefit of creating a GitHub issue from the implementation plan?\
-   a) It creates a trackable work item that can be assigned, monitored, and closed upon completion\
+   a) GitHub issues are required by Python\
    b) It makes the code run faster\
-   c) GitHub issues are required by Python\
+   c) It creates a trackable work item that can be assigned, monitored, and closed upon completion\
    d) To increase the file count
 
 **Question 2:** What does the swarm-advanced skill do during implementation?\
-   a) Spawns specialized agents (coder, tester, reviewer) that work in parallel to implement the plan\
-   b) Deletes old files\
+   a) Deletes old files\
+   b) Spawns specialized agents (coder, tester, reviewer) that work in parallel to implement the plan\
    c) Sends emails to the team\
    d) Compresses the codebase
 
@@ -831,8 +791,8 @@ Notice what just happened:
    d) That the files are large
 
 **Answers:**
-1. **a)** GitHub issues create trackable work items for assignment, monitoring, and verification
-2. **a)** Swarm-advanced spawns specialized agents that work in parallel
+1. **c)** GitHub issues create trackable work items for assignment, monitoring, and verification
+2. **b)** Swarm-advanced spawns specialized agents that work in parallel
 3. **a)** Verify scripts exist, pass syntax validation, and produce expected output
 
 ---
@@ -850,32 +810,85 @@ Now that you've generated all 5 pipeline scripts using natural language, it's ti
 
 ### Exercise 4.1: Run the Complete Pipeline
 
-**Task:** Test your generated pipeline with the demo documents.
+**Task:** Test your generated pipeline with the demo documents using Claude Code.
 
 **Instructions:**
 
-**Step 1: Run the Full Pipeline (5 mins)**
+**Step 1: Run the Full Pipeline with Claude Code (5 mins)**
+
+In Claude Code, simply ask:
+
+```
+run the full pipeline 'src/agents/pipeline' on 'demo-docs/'
+```
+
+Claude Code will execute the orchestrator and display the results:
+
+```
+🚀 Starting pipeline for 16 documents
+   Max parallel: 10
+   Continue on error: True
+
+📄 Processing: sample3.md
+📄 Processing: doc15.md
+📄 Processing: doc11.md
+📄 Processing: doc13.md
+📄 Processing: doc8.md
+📄 Processing: doc5.md
+  ✅ Success: 1 chunks, 1 embeddings
+  ✅ Success: 1 chunks, 1 embeddings
+📄 Processing: doc4.md
+📄 Processing: doc6.md
+  ✅ Success: 1 chunks, 1 embeddings
+  ...
+
+╔══════════════════════════════════════════════════════════════╗
+║           DOCUMIND PIPELINE PROCESSING REPORT                ║
+╚══════════════════════════════════════════════════════════════╝
+
+📊 SUMMARY
+────────────────────────────────────────────────────────────
+Total Documents:        16
+✅ Successful:          16 (100.0%)
+❌ Failed:              0 (0.0%)
+
+📦 OUTPUT
+────────────────────────────────────────────────────────────
+Total Chunks Created:   16
+Total Embeddings:       16
+Avg Chunks/Document:    1.0
+
+⏱️  PERFORMANCE
+────────────────────────────────────────────────────────────
+Total Time:             0.94s
+Avg Time/Document:      0.65s
+Throughput:             17.0 docs/second
+
+⚙️  STAGE BREAKDOWN (Average Times)
+────────────────────────────────────────────────────────────
+Extract:                0.105s
+Chunk:                  0.051s
+Embed:                  0.211s
+Write:                  0.102s
+
+❌ ERRORS BY STAGE
+────────────────────────────────────────────────────────────
+Extract failures:       0
+Chunk failures:         0
+Embed failures:         0
+Write failures:         0
+
+════════════════════════════════════════════════════════════
+Generated at: 2025-12-12 07:44:14
+
+📝 JSON report saved to: pipeline-results.json
+```
+
+**Alternative: Run directly from terminal:**
 
 ```bash
-# Navigate to your DocuMind project
-cd ~/documind  # or wherever your project is
-
-# Run the orchestrator on demo documents
-python src/agents/pipeline/orchestrate.py demo-docs/
-
-# Expected output:
-# Processing demo-docs/remote-work-policy.md...
-#   ✓ Extracted (0.12s)
-#   ✓ Chunked: 3 chunks (0.05s)
-#   ✓ Embedded (1.45s)
-#   ✓ Stored (0.28s)
-# Processing demo-docs/expense-policy.md...
-#   ✓ Extracted (0.11s)
-#   ✓ Chunked: 2 chunks (0.04s)
-#   ✓ Embedded (0.92s)
-#   ✓ Stored (0.21s)
-#
-# Pipeline Complete: 2 documents processed
+# Run the orchestrator with JSON output
+python src/agents/pipeline/orchestrate.py -d demo-docs/ --max-parallel 10 --json-output pipeline-results.json
 ```
 
 **Step 2: Verify Data in Supabase (3 mins)**
@@ -890,9 +903,90 @@ Use the Supabase MCP to:
 ```
 
 **Expected verification:**
-- Documents table should have 2 new records
-- Chunks table should have 5 chunks (3 + 2)
+- Documents table should have new records
+- Chunks table should have chunks
 - Each chunk should have a 1536-dimension embedding vector
+
+---
+
+### 🚨 Plot Twist: No Chunks? No Problem!
+
+**Wait, what's this?** You ran the verification and got something like:
+
+```
+Documents table: 5 ✅
+Chunks table: 0 ❌
+Embeddings: 0 ❌
+
+"document_chunks table doesn't exist"
+```
+
+**Don't panic!** 🎉 This is actually a *teachable moment* (fancy way of saying "oops, we forgot something").
+
+Your plan likely missed adding the `document_chunks` table to Supabase. The pipeline ran successfully with mock agents, but there's nowhere to store the real chunks!
+
+**The Fix: Let Claude Handle It**
+
+Simply ask Claude Code:
+
+```
+Create a GitHub issue for adding a document_chunks table with vector embeddings support, then implement it.
+```
+
+**What Happens Next:**
+
+Claude will:
+1. 📝 Create a detailed GitHub issue with the table schema
+2. 🔨 Apply a Supabase migration to create the table
+3. ✅ Verify the table exists with all the right columns
+4. 🎯 Close the issue with implementation notes
+
+**Example Output:**
+```
+✓ Created issue #20: Create document_chunks table with vector embeddings support
+✓ Applied migration: create_document_chunks_table
+✓ Table created with columns: id, document_id, chunk_index, content, embedding, word_count, metadata, created_at
+✓ Vector index created for similarity search
+✓ Closed issue #20
+```
+
+> **💡 Pro Tip:** It may take Claude a few iterations to get everything right—configuring real agents, fixing import paths, handling environment variables. But hey, it's still WAY faster than most development teams... be patient!
+
+**Now Re-run the Pipeline:**
+
+After Claude creates the table, run the pipeline again:
+
+```
+run the full pipeline 'src/agents/pipeline' on 'demo-docs/'
+```
+
+This time you'll see REAL HTTP requests flying:
+- 🤖 `POST https://api.openai.com/v1/embeddings` - Real embeddings!
+- 💾 `POST https://yourproject.supabase.co/rest/v1/document_chunks` - Real storage!
+
+**Verify Again:**
+
+```
+Use the Supabase MCP to:
+1. Count documents in the 'documents' table
+2. List the first 5 chunks from 'document_chunks' table
+3. Verify embeddings exist (check if embedding column is not null)
+```
+
+**Expected (Happy) Results:**
+```
+Documents table: 21 ✅ (5 original + 16 new)
+Chunks table: 16 ✅
+Chunks with embeddings: 16 ✅ (100%!)
+```
+
+**Isn't that fun and easy?** 🎊 You just:
+- Discovered a missing database table
+- Had AI create a GitHub issue
+- Had AI implement the fix
+- Re-ran the pipeline with real data
+
+Welcome to the future of software development!
 
 ---
 
@@ -1035,16 +1129,16 @@ Your generated pipeline is complete when:
 ### Quiz 4:
 
 **Question 1:** What's the main benefit of using natural language to enhance code vs. manual editing?\
-   a) You describe WHAT you want, and the AI figures out HOW to implement it\
+   a) Manual editing doesn't work\
    b) It's faster to type natural language than code\
    c) Natural language is more precise than code\
-   d) Manual editing doesn't work
+   d) You describe WHAT you want, and the AI figures out HOW to implement it
 
 **Question 2:** When testing generated code, what should you verify first?\
-   a) The script runs without syntax errors and handles edge cases\
+   a) The comments are detailed\
    b) The code is as short as possible\
    c) The variable names are creative\
-   d) The comments are detailed
+   d) The script runs without syntax errors and handles edge cases
 
 **Question 3:** What demonstrates the "Two Layers" concept in this session?\
    a) Claude Flow helped generate the pipeline scripts, which then run independently at runtime\
@@ -1053,8 +1147,8 @@ Your generated pipeline is complete when:
    d) We ran the pipeline twice
 
 **Answers:**
-1. **a)** Natural language lets you focus on requirements; the AI handles implementation details
-2. **a)** First verify the script runs and handles edge cases before checking other aspects
+1. **d)** Natural language lets you focus on requirements; the AI handles implementation details
+2. **d)** First verify the script runs and handles edge cases before checking other aspects
 3. **a)** Claude Flow (development-time) generated scripts that run independently (runtime)
 
 ---
