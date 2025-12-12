@@ -1,7 +1,7 @@
 # HeroForge.AI Course: AI-Powered Software Development
 ## Lesson 5 Workshop: Multi-Agent Systems - Coordinating Specialized AI Teams
 
-**Estimated Time:** 40-50 minutes\
+**Estimated Time:** 45-60 minutes\
 **Difficulty:** Advanced\
 **Prerequisites:** 
 1. Completed Sessions 1-4 (Agentic Engineering fundamentals, Claude Code CLI, Skills/Subagents/Hooks, MCP & A2A)
@@ -280,9 +280,7 @@ Coordinator (reports completion)
 
 **Step 3: Define Agent Interfaces (7 mins)**
 
-Create `docs/spec/documind/agent-interfaces.md`:  
-
-**Key insight:** The agent interfaces doc is the contract that Claude Flow agents use to generate consistent, interoperable code. Without it, the generated scripts might not work together properly.
+Create `docs/spec/documind/agent-interfaces.md`:
 
 ```markdown
 # DocuMind Agent Interfaces
@@ -415,385 +413,635 @@ Create `docs/spec/documind/agent-interfaces.md`:
 
 ---
 
-## Module 2: Goal-Oriented Planning with Claude Flow (10 minutes)
+## Module 2: ClaudeFlow Setup and Agent Spawning (15 minutes)
 
 ### Concept Review
 
-**What is Goal-Oriented Action Planning (GOAP)?**
+**What is ClaudeFlow?**
 
-GOAP is an AI planning technique borrowed from game development that dynamically creates plans to achieve complex objectives. Instead of following rigid scripts, GOAP:
+ClaudeFlow is a multi-agent orchestration framework that manages swarms of AI agents. It provides:
+- **Swarm initialization**: Set up agent topologies (mesh, hierarchical, star, ring)
+- **Agent spawning**: Create specialized agents with defined capabilities
+- **Task orchestration**: Distribute work across agents
+- **Memory coordination**: Shared state management
+- **Performance monitoring**: Track agent activity and bottlenecks
 
-1. **Analyzes the goal state** - What does "success" look like?
-2. **Identifies preconditions** - What must be true before each action?
-3. **Creates action sequences** - What order achieves the goal most efficiently?
-4. **Defines success criteria** - How do we verify completion?
+**ClaudeFlow Commands:**
+```bash
+# Initialize swarm
+npx claude-flow swarm init --topology <type> --max-agents <n>
 
-**The Goal-Planner Agent:**
+# Spawn agent
+npx claude-flow agent spawn --type <role> --name <identifier>
 
-Claude Flow includes a `goal-planner` agent that applies GOAP to software development. When you invoke it, the agent:
-- Reads your specifications (PRD, requirements docs)
-- Breaks complex goals into concrete milestones
-- Identifies dependencies between tasks
-- Creates a structured implementation plan
+# List agents
+npx claude-flow agent list
 
-**Why Plan Before Implementing?**
+# Orchestrate task
+npx claude-flow task orchestrate --task "<description>" --priority high
 
-| Without Planning | With Goal-Planner |
-|------------------|-------------------|
-| Jump into code, discover issues later | Identify blockers upfront |
-| Miss edge cases | Consider all components |
-| Rework due to missed dependencies | Clear execution order |
-| No validation criteria | Built-in success metrics |
+# Check status
+npx claude-flow swarm status
+```
 
 ---
 
-### Exercise 2.1: Generate an Implementation Plan
+### Exercise 2.1: Initialize ClaudeFlow Swarm
 
-**Task:** Use the goal-planner agent to create a comprehensive plan for the 5 pipeline components.
+**Task:** Set up a ClaudeFlow swarm for DocuMind's document processing pipeline.
 
 **Instructions:**
 
-**Step 1: Invoke the Goal-Planner (3 mins)**
+**Step 1: Install ClaudeFlow (2 mins)**
 
-In Claude Code, enter this prompt:
+```bash
+# Install and initialize ClaudeFlow as MCP server
+npx claude-flow@alpha init --force
 
+# Verify installation:
+claude mcp list
 ```
-use @goal-planner to review the S5-Workshop Module 1 content and the
-DocuMind PRD (docs/spec/documind-prd.md) to create an implementation
-plan for the 5 pipeline components. Save the plan to
-docs/plans/pipeline-components-plan.md
+
+# Should show: 
+ruv-swarm: npx ruv-swarm mcp start - ✓ Connected
+supabase: npx @supabase/mcp-server-supabase - ✓ Connected
+documind: python3 src/documind-mcp/server.py - ✓ Connected
+claude-flow: npx claude-flow@alpha mcp start - ✓ Connected
+flow-nexus: npx flow-nexus@latest mcp start - ✓ Connected
+
+NOTE: If any MCPs are not connected, use Claude Code to fix.  Then restart session.
+
+# Reference: https://github.com/ruvnet/claude-flow
+
+
+**Step 2: Initialize Swarm with Hierarchical Topology (3 mins)**
+
+```bash
+# Create hierarchical swarm for pipeline processing
+npx claude-flow swarm init \
+  --topology hierarchical \
+  --max-agents 6 \
+  --strategy adaptive
+
+# Expected output:
+# ✓ Swarm initialized successfully
+# ✓ Topology: hierarchical
+# ✓ Max agents: 6
+# ✓ Strategy: adaptive
+# ✓ Swarm ID: swarm-abc123
 ```
 
-**What Happens:**
-- The goal-planner agent reads Module 1 (agent interfaces)
-- It analyzes the PRD requirements
-- It creates a structured plan with milestones
-- The plan is saved to `docs/plans/pipeline-components-plan.md`
+**What This Does:**
+- Creates a swarm with hierarchical coordination
+- Allows up to 6 agents (1 coordinator + 5 workers)
+- Uses adaptive strategy (automatically adjusts based on load)
+- Generates a unique swarm ID for reference
 
-**Step 2: Review the Generated Plan (5 mins)**
+**Step 3: Verify Swarm Status (2 mins)**
 
-Open the generated plan and verify it includes:
+```bash
+npx claude-flow swarm status
 
-- [ ] **All 5 components identified:**
-  - Extractor (read files, extract text)
-  - Chunker (split into ~500-word chunks)
-  - Embedder (generate OpenAI embeddings)
-  - Writer (store in Supabase)
-  - Orchestrator (coordinate the pipeline)
+# Expected output:
+# Swarm Status:
+# ============
+# ID: swarm-abc123
+# Topology: hierarchical
+# Active Agents: 0 / 6
+# Status: Ready
+# Created: 2025-11-24 10:30:00
+```
 
-- [ ] **Clear milestones with success criteria:**
-  - Each component has a "done" definition
-  - Validation steps are specified
-  - Dependencies are explicit
+**Step 4: Configure Memory Coordination (3 mins)**
 
-- [ ] **Technology choices aligned with PRD:**
-  - Python 3.10+
-  - OpenAI text-embedding-3-small
-  - Supabase with pgvector
+Create `.claude-flow/memory-config.json`:
 
-- [ ] **Implementation order:**
-  - Which component to build first?
-  - What can be parallelized?
+```json
+{
+  "memory": {
+    "type": "shared",
+    "backend": "filesystem",
+    "path": "./memory/swarm",
+    "ttl": 3600,
+    "namespaces": [
+      "pipeline/status",
+      "pipeline/errors",
+      "extraction/raw_text",
+      "extraction/metadata",
+      "chunking/chunks",
+      "chunking/strategy",
+      "embeddings/vectors",
+      "embeddings/model",
+      "database/write_status",
+      "database/record_ids"
+    ]
+  },
+  "coordination": {
+    "locking": true,
+    "retryAttempts": 3,
+    "timeoutMs": 30000
+  },
+  "monitoring": {
+    "enabled": true,
+    "metricsInterval": 10000,
+    "logLevel": "info"
+  }
+}
+```
 
-**Step 3: Understand the Plan Structure (2 mins)**
+**Step 5: Test Memory Access (5 mins)**
 
-A well-formed GOAP plan includes:
+```bash
+# Store test data in memory
+npx claude-flow memory store \
+  --key "pipeline/status/test-doc-1" \
+  --value '{"stage": "extraction", "progress": 0.5}' \
+  --namespace "pipeline/status"
 
-```markdown
-## Goal: Working Document Processing Pipeline
+# Retrieve test data
+npx claude-flow memory retrieve \
+  --key "pipeline/status/test-doc-1" \
+  --namespace "pipeline/status"
 
-### Milestone 1: Extractor Component
-**Preconditions:** Project structure exists
-**Actions:** Create extractor.py with file reading logic
-**Success Criteria:** Can extract text from .md, .txt, .pdf, .docx
+# Expected output:
+# {"stage": "extraction", "progress": 0.5}
 
-### Milestone 2: Chunker Component
-**Preconditions:** Extractor works
-**Actions:** Create chunker.py with text splitting
-**Success Criteria:** Produces ~500-word chunks with overlap
+# List all keys in namespace
+npx claude-flow memory list --namespace "pipeline/status"
 
-[...continues for all 5 components...]
+# Delete test data
+npx claude-flow memory delete \
+  --key "pipeline/status/test-doc-1" \
+  --namespace "pipeline/status"
 ```
 
 ---
 
-### ⚠️ Verification Checkpoint: Planning Complete
+### Exercise 2.2: Prepare Your DocuMind Project for Code Generation
 
-Before proceeding to Module 3, confirm:
+> **Important:** The DocuMind pipeline scripts you'll generate are **pure Python** - no Claude Flow dependency at runtime. Claude Flow helps you BUILD the scripts; they run independently in production.
+
+**Task:** Set up your DocuMind project structure and prepare for swarm-driven code generation.
+
+**Instructions:**
+
+**Step 1: Ensure Your DocuMind Project Has the PRD (2 mins)**
+
+In your **DocuMind Codespace** (not this course repo), verify the PRD exists:
 
 ```bash
-# 1. Plan file exists
-cat docs/plans/pipeline-components-plan.md | head -20
+# Check for PRD
+ls docs/spec/documind-prd.md
 
-# 2. Environment variables configured (from Session 4)
-echo "OpenAI: ${OPENAI_API_KEY:0:10}..."
-echo "Supabase URL: ${SUPABASE_URL}"
-echo "Supabase Key: ${SUPABASE_ANON_KEY:0:10}..."
+# If missing, copy from course repo or create the docs directory
 ```
 
-**If the plan doesn't exist:**
-- Re-run the goal-planner prompt
-- Ensure Claude Code has access to the PRD file
-- Check for any error messages
+The PRD is your specification - Claude Flow will use it to understand what to generate.
 
-**If environment variables are missing:**
-- Review Session 4 setup
-- Add keys to your `.env` file
+**Step 2: Create the Pipeline Directory (2 mins)**
+
+```bash
+# Create the directory where generated scripts will live
+mkdir -p src/agents/pipeline
+
+# Create __init__.py for Python package
+touch src/agents/pipeline/__init__.py
+
+# Verify structure
+ls -la src/agents/pipeline/
+```
+
+**Step 3: Create Demo Documents for Testing (3 mins)**
+
+Create sample documents to test the generated pipeline:
+
+```bash
+# Create demo-docs directory
+mkdir -p demo-docs
+
+# Create a sample markdown document
+cat > demo-docs/remote-work-policy.md << 'EOF'
+# Remote Work Policy
+
+## Overview
+Employees may work remotely up to 3 days per week with manager approval.
+
+## Requirements
+- Stable internet connection (minimum 10 Mbps)
+- Dedicated workspace
+- Availability during core hours (10 AM - 3 PM local time)
+
+## Equipment
+Company provides laptop and $500 annual stipend for home office setup.
+
+## Communication
+- Daily standup via Slack or Teams
+- Camera on for all team meetings
+- Respond to messages within 2 hours during core hours
+EOF
+
+# Create another sample document
+cat > demo-docs/expense-policy.md << 'EOF'
+# Expense Reimbursement Policy
+
+## Eligible Expenses
+- Travel: flights, hotels, ground transportation
+- Meals: up to $75/day for business travel
+- Software: pre-approved tools only
+- Training: requires manager approval
+
+## Submission Process
+1. Submit receipts within 30 days
+2. Use the expense portal at expenses.company.com
+3. Manager approval required for expenses over $500
+EOF
+```
+
+**Step 4: Verify Environment Variables (3 mins)**
+
+The generated scripts will use real APIs. Verify your keys from S4 are configured:
+
+```bash
+# Check for required environment variables
+echo "OpenAI API Key: ${OPENAI_API_KEY:0:10}..."
+echo "Supabase URL: ${SUPABASE_URL}"
+echo "Supabase Key: ${SUPABASE_ANON_KEY:0:10}..."
+
+# If any are missing, add them to your .env file
+# These should be configured from Session 4
+```
+
+**What You'll Generate in Module 3:**
+
+| Script | Purpose | Key Function |
+|--------|---------|--------------|
+| **extractor.py** | Reads files, extracts text | `extract_document(path) → dict` |
+| **chunker.py** | Splits into ~500-word chunks | `chunk_content(text, size=500) → list` |
+| **embedder.py** | Generates OpenAI embeddings | `generate_embeddings(chunks) → list` |
+| **writer.py** | Stores in Supabase | `store_document(data) → bool` |
+| **orchestrate.py** | Coordinates pipeline | `process_batch(files) → report` |
+
+**Key Teaching Point:**
+> "Claude Flow is about to WRITE these scripts for you using natural language prompts. You describe what you need, the swarm generates the implementation. This is agentic development in action."
+```
+
+---
+
+### ⚠️ Verification Checkpoint: Agent Spawning
+
+**Before continuing, verify your agents are properly configured:**
+
+```bash
+# 1. Check agents exist
+npx claude-flow agent list | grep -c "Status: Active"
+# Should output: 5
+
+# 2. Check swarm topology
+npx claude-flow swarm status | grep "Topology"
+# Should show: hierarchical
+
+# 3. Check memory is accessible
+npx claude-flow memory get "swarm/status"
+# Should return status data
+```
+
+**If any check fails:**
+- Re-run the failed step with more verbose output (`--verbose` flag)
+- Check error logs: `cat .claude-flow/logs/latest.log`
+- Restart the swarm: `npx claude-flow swarm destroy && npx claude-flow swarm init ...`
+
+**Important:** Agents report "spawned" immediately, but may not be fully ready. Wait 2-3 seconds after spawning before sending tasks.
 
 ---
 
 ### Quiz 2:
 
-**Question 1:** What is Goal-Oriented Action Planning (GOAP)?\
-   a) An AI technique that dynamically creates plans by analyzing goals, preconditions, and success criteria\
-   b) A way to write Python code faster\
-   c) A database query optimization technique\
-   d) A method for compressing files
+**Question 1:** What is the purpose of ClaudeFlow's swarm initialization?\
+   a) To set up the topology, coordination strategy, and shared resources for multiple agents\
+   b) To install Python packages\
+   c) To create a new GitHub repository\
+   d) To delete old files
 
-**Question 2:** Why use a goal-planner agent before implementing code?\
-   a) To make the code run faster\
-   b) To identify dependencies, create milestones, and define success criteria upfront\
-   c) Because Claude Code requires it\
-   d) To reduce the number of files
+**Question 2:** Why do we spawn 5 agents instead of just using 1 agent for everything?\
+   a) Specialization enables expertise, parallel processing, and better error isolation\
+   b) Because it looks cool to have many agents\
+   c) To waste resources intentionally\
+   d) Claude Code requires exactly 5 agents
 
-**Question 3:** What should a good implementation plan include?\
-   a) Just the programming language to use\
-   b) Only file names\
-   c) Milestones, preconditions, actions, success criteria, and dependencies\
-   d) Marketing materials
+**Question 3:** What is the role of the shared memory system in ClaudeFlow?\
+   a) Enables agents to coordinate by storing and retrieving shared state across the pipeline\
+   b) To save RAM on your computer\
+   c) To slow down the agents intentionally\
+   d) It has no real purpose
 
 **Answers:**
-1. **a)** GOAP dynamically creates plans by analyzing goals, preconditions, and success criteria
-2. **b)** Planning upfront identifies dependencies, creates milestones, and defines how to verify success
-3. **c)** Good plans include milestones, preconditions, actions, success criteria, and dependencies
+1. **a)** Swarm initialization sets up topology, strategy, and shared resources for agent coordination
+2. **a)** Multiple specialized agents enable expertise, parallelism, and error isolation
+3. **a)** Shared memory enables coordination through shared state management
 
 ---
 
-## Module 3: Swarm Implementation from Plan (10 minutes)
+## Module 3: Swarm-Driven Code Generation (15 minutes)
 
 ### Concept Review
 
-**Issue-Driven Development with AI:**
+**Natural Language to Code:**
 
-In professional development, work is tracked through issues (GitHub Issues, Jira tickets, etc.). This pattern works beautifully with AI:
+In this module, you'll use Claude Flow to generate the pipeline scripts using natural language. This is the core of agentic development:
 
-1. **Plan becomes Issue** - Your implementation plan converts to a trackable issue
-2. **Issue becomes Work** - The AI swarm implements the issue
-3. **Work becomes Verified** - You validate the implementation
+1. **You describe** what each component should do
+2. **The swarm generates** production-ready Python code
+3. **You verify** the generated code meets the PRD spec
 
-**The Swarm-Advanced Skill:**
+**The Power of Natural Language Prompts:**
 
-Claude Flow's `swarm-advanced` skill orchestrates multiple specialized agents to implement complex tasks:
+A good prompt includes:
+- **Purpose**: What the script should accomplish
+- **Inputs/Outputs**: Expected data formats
+- **Dependencies**: APIs, libraries to use
+- **Constraints**: Error handling, performance requirements
 
-| Agent Type | Role |
-|------------|------|
-| **Coder** | Writes implementation code |
-| **Tester** | Creates tests and validation |
-| **Reviewer** | Checks code quality |
-| **Coordinator** | Manages workflow between agents |
-
-**Why Swarm Implementation?**
-
-- **Parallel Execution**: Multiple agents work simultaneously
-- **Specialization**: Each agent focuses on their expertise
-- **Quality Built-In**: Review and testing happen automatically
-- **Faster Results**: 2-4x speed improvement over sequential work
+**Example Prompt Structure:**
+```
+Generate a Python script called {name}.py that:
+- Purpose: {what it does}
+- Input: {expected input}
+- Output: {expected output}
+- Uses: {libraries/APIs}
+- Must: {constraints/requirements}
+```
 
 ---
 
-### Exercise 3.1: Create Implementation Issue
+### Exercise 3.1: Generate the Extractor Script
 
-**Task:** Convert your plan into a GitHub issue.
-
-**Instructions:**
-
-**Step 1: Create the Issue (2 mins)**
-
-In Claude Code, enter:
-
-```
-create a GitHub issue for docs/plans/pipeline-components-plan.md
-```
-
-**What Happens:**
-- Claude reads the plan file
-- Creates a structured GitHub issue
-- Includes tasks from the plan as checkboxes
-- Adds appropriate labels (enhancement, pipeline, etc.)
-
-**Step 2: Review the Created Issue (2 mins)**
-
-After the issue is created:
-- Note the issue number (e.g., `#42`)
-- Review the task breakdown
-- See how milestones became checkboxes
-- Observe the labels and description
-
-**Key Teaching Point:**
-> "The plan you created in Module 2 is now a trackable work item. This is how professional development teams operate - plans become issues, issues become code."
-
----
-
-### Exercise 3.2: Implement with Swarm
-
-**Task:** Use the swarm-advanced skill to implement all 5 pipeline components.
+**Task:** Use natural language to have Claude generate `extractor.py`.
 
 **Instructions:**
 
-**Step 1: Launch Swarm Implementation (3 mins)**
+**Step 1: Craft Your Natural Language Prompt (3 mins)**
 
-In Claude Code, enter:
-
-```
-implement the issue using the swarm-advanced skill
-```
-
-**What You'll See:**
-
-The swarm skill will:
-1. **Initialize** - Set up the swarm topology
-2. **Spawn Agents** - Create coder, tester, reviewer agents
-3. **Distribute Work** - Assign components to agents
-4. **Execute in Parallel** - Multiple scripts generated simultaneously
-5. **Coordinate** - Ensure consistency across components
-6. **Report** - Show progress and completion status
-
-**Step 2: Observe the Swarm (2 mins)**
-
-Watch the output as agents work:
+In Claude Code, type the following prompt (adapt based on your PRD):
 
 ```
-🚀 Swarm initialized: hierarchical topology
-   ├── Spawning coder agent...
-   ├── Spawning tester agent...
-   └── Spawning reviewer agent...
+Generate a Python script called src/agents/pipeline/extractor.py that implements the Document Extractor from the DocuMind PRD.
 
-📝 Implementing pipeline components:
-   ├── extractor.py (coder) ████████░░ 80%
-   ├── chunker.py (coder) ██████████ 100% ✓
-   ├── embedder.py (coder) ███████░░░ 70%
-   ├── writer.py (coder) ██████████ 100% ✓
-   └── orchestrate.py (coder) ████░░░░░░ 40%
+**Purpose:** Extract text content and metadata from documents.
 
-🔍 Review in progress...
-✅ Implementation complete: 5/5 components
+**Requirements from PRD:**
+- Support file formats: .md, .txt, .pdf, .docx
+- Extract raw text content
+- Capture metadata: title (from first heading or filename), file type, file size
+- Return a dictionary with: success, file_path, title, content, file_type, size, error (if any)
+
+**Implementation details:**
+- Use pathlib for file handling
+- For PDF: use PyPDF2 or pdfplumber (install if needed)
+- For DOCX: use python-docx (install if needed)
+- For MD/TXT: read directly with standard library
+- Handle errors gracefully - return success=False with error message
+- Make it executable standalone: python extractor.py <file_path>
+- Output JSON to stdout
+
+**Include:**
+- Type hints
+- Docstrings
+- A main() function for CLI usage
+- Proper shebang (#!/usr/bin/env python3)
 ```
 
-**Step 3: Verify Implementation (3 mins)**
+**Step 2: Review the Generated Code (2 mins)**
 
-After the swarm completes, verify all scripts were created:
+After Claude generates the script, verify:
+- [ ] File exists at `src/agents/pipeline/extractor.py`
+- [ ] Has proper imports and error handling
+- [ ] Supports the file formats specified
+- [ ] Returns JSON output
+
+**Step 3: Test the Generated Extractor (2 mins)**
 
 ```bash
-# List pipeline scripts
-ls -la src/agents/pipeline/
+# Make it executable
+chmod +x src/agents/pipeline/extractor.py
+
+# Test with a markdown file
+python src/agents/pipeline/extractor.py demo-docs/remote-work-policy.md
+
+# Expected output (JSON):
+# {
+#   "success": true,
+#   "file_path": "demo-docs/remote-work-policy.md",
+#   "title": "Remote Work Policy",
+#   "content": "...",
+#   "file_type": ".md",
+#   "size": 523
+# }
+```
+
+---
+
+### Exercise 3.2: Generate the Remaining Pipeline Components
+
+**Task:** Use natural language to generate chunker.py, embedder.py, and writer.py.
+
+**Instructions:**
+
+**Step 1: Generate chunker.py (3 mins)**
+
+```
+Generate src/agents/pipeline/chunker.py that implements the Text Chunker from the DocuMind PRD.
+
+**Purpose:** Split text into semantic chunks for embedding.
+
+**Requirements:**
+- Default chunk size: 500 words with 50-word overlap
+- Accept JSON input (from extractor) via stdin or file argument
+- Output JSON array of chunks with metadata
+
+**Each chunk should include:**
+- chunk_id: sequential identifier
+- content: the text content
+- word_count: number of words
+- start_position: character offset in original
+- document_id: from input
+
+**Implementation:**
+- Split on sentence boundaries when possible
+- Ensure overlap between consecutive chunks
+- Handle edge cases (very short documents, single sentences)
+- Pure Python - no external dependencies for chunking
+```
+
+**Step 2: Generate embedder.py (3 mins)**
+
+```
+Generate src/agents/pipeline/embedder.py that implements the Embedding Generator from the DocuMind PRD.
+
+**Purpose:** Generate vector embeddings using OpenAI API.
+
+**Requirements:**
+- Use OpenAI text-embedding-3-small model
+- Accept JSON input (array of chunks) via stdin or file argument
+- Output JSON with embeddings array
+- Handle API rate limits with retry logic
+
+**Environment:**
+- Read OPENAI_API_KEY from environment variable
+- Batch chunks for efficiency (max 2000 tokens per batch)
+
+**Output format:**
+{
+  "success": true,
+  "embeddings": [
+    {"chunk_id": "...", "vector": [0.1, 0.2, ...], "model": "text-embedding-3-small"}
+  ]
+}
+```
+
+**Step 3: Generate writer.py (3 mins)**
+
+```
+Generate src/agents/pipeline/writer.py that implements the Database Writer from the DocuMind PRD.
+
+**Purpose:** Store documents, chunks, and embeddings in Supabase.
+
+**Requirements:**
+- Use Supabase Python client
+- Accept JSON input with document data, chunks, and embeddings
+- Write to tables: documents, document_chunks (with vectors)
+- Use transactions for data integrity
+
+**Environment:**
+- Read SUPABASE_URL and SUPABASE_ANON_KEY from environment
+- Handle connection errors gracefully
+
+**Tables (from S4):**
+- documents: id, title, content, file_type, created_at
+- document_chunks: id, document_id, chunk_index, content, embedding (vector)
+```
+
+---
+
+### Exercise 3.3: Generate the Pipeline Orchestrator
+
+**Task:** Generate orchestrate.py to coordinate all pipeline stages.
+
+**Instructions:**
+
+**Prompt for orchestrate.py:**
+
+```
+Generate src/agents/pipeline/orchestrate.py that coordinates the DocuMind document processing pipeline.
+
+**Purpose:** Orchestrate the 4-stage pipeline with parallel processing.
+
+**Pipeline stages:**
+1. extractor.py - Extract text from documents
+2. chunker.py - Split into chunks
+3. embedder.py - Generate embeddings
+4. writer.py - Store in database
+
+**Requirements:**
+- Accept a directory path or list of file paths as input
+- Process multiple documents in parallel using asyncio
+- Chain stages: output of each stage feeds into the next
+- Collect metrics: time per stage, success/failure counts
+- Print a summary report at the end
+
+**Features:**
+- Continue on error: if one document fails, keep processing others
+- Progress indicator: show which document is being processed
+- Final report: total docs, successful, failed, time taken
+
+**CLI usage:**
+python orchestrate.py demo-docs/
+python orchestrate.py file1.md file2.pdf file3.docx
+```
+
+**Verify the Complete Pipeline:**
+
+```bash
+# Run the full pipeline on demo documents
+python src/agents/pipeline/orchestrate.py demo-docs/
 
 # Expected output:
-# __init__.py
+# Processing demo-docs/remote-work-policy.md...
+#   ✓ Extracted (0.1s)
+#   ✓ Chunked: 3 chunks (0.05s)
+#   ✓ Embedded (1.2s)
+#   ✓ Stored (0.3s)
+# Processing demo-docs/expense-policy.md...
+#   ✓ Extracted (0.1s)
+#   ✓ Chunked: 2 chunks (0.04s)
+#   ✓ Embedded (0.9s)
+#   ✓ Stored (0.2s)
+#
+# ═══════════════════════════════════════
+# Pipeline Complete
+# Total: 2 documents
+# Successful: 2
+# Failed: 0
+# Total time: 2.89s
+# ═══════════════════════════════════════
+```
+
+---
+
+### ⚠️ Verification Checkpoint: Generated Scripts
+
+**After generating all scripts, verify they exist:**
+
+```bash
+# Check all pipeline scripts were created
+ls -la src/agents/pipeline/
+
+# Expected:
 # extractor.py
 # chunker.py
 # embedder.py
 # writer.py
 # orchestrate.py
+# __init__.py
 
-# Verify syntax is correct
+# Verify each script is syntactically correct
 python -m py_compile src/agents/pipeline/extractor.py
 python -m py_compile src/agents/pipeline/chunker.py
 python -m py_compile src/agents/pipeline/embedder.py
 python -m py_compile src/agents/pipeline/writer.py
 python -m py_compile src/agents/pipeline/orchestrate.py
-
-echo "✅ All scripts pass syntax validation"
 ```
-
-**Step 4: Review Generated Code (2 mins)**
-
-Open one of the generated scripts and verify quality:
-
-```bash
-# View the extractor script
-cat src/agents/pipeline/extractor.py | head -50
-```
-
-Check for:
-- [ ] Proper imports and error handling
-- [ ] Matches PRD specifications (file formats, output structure)
-- [ ] Has type hints and docstrings
-- [ ] Follows the agent interface from Module 1
-
----
-
-### ⚠️ Verification Checkpoint: Implementation Complete
-
-Before proceeding to Module 4, confirm:
-
-| Check | Command | Expected |
-|-------|---------|----------|
-| Plan exists | `ls docs/plans/pipeline-components-plan.md` | File present |
-| Scripts created | `ls src/agents/pipeline/*.py \| wc -l` | 5 to 7 files, including the extractor, chunker, embedder, writer, and orchestrate agent (you may have some bonus agents too!) |
-| Syntax valid | `python -m py_compile src/agents/pipeline/*.py` | No errors |
-| Extractor works | `python src/agents/pipeline/extractor.py demo-docs/[choose_file_name].md` | JSON output |
 
 **If any script is missing or has errors:**
+- Re-run the natural language prompt with more specific instructions
 - Ask Claude to fix the specific error
-- Re-run the swarm implementation for the failed component
-- Check the error messages for guidance
-
----
-
-### The Two Layers in Action
-
-Notice what just happened:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  Layer 1: Claude Flow (Development-Time)                    │
-│  ──────────────────────────────────────                     │
-│  - goal-planner created the plan                            │
-│  - swarm-advanced implemented the code                      │
-│  - Multiple agents worked in parallel                       │
-│  - You observed and validated                               │
-└─────────────────────────────────────────────────────────────┘
-                          │
-                          │ generated
-                          ▼
-┌─────────────────────────────────────────────────────────────┐
-│  Layer 2: Python Scripts (Runtime)                          │
-│  ──────────────────────────────────                         │
-│  - extractor.py, chunker.py, embedder.py, writer.py         │
-│  - orchestrate.py coordinates them all                      │
-│  - NO Claude Flow dependency at runtime                     │
-│  - Users can run: python orchestrate.py demo-docs/          │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**Key Insight:** Claude Flow helped you BUILD the pipeline. The pipeline RUNS independently.
+- Verify your environment variables are set correctly
 
 ---
 
 ### Quiz 3:
 
-**Question 1:** What is the benefit of creating a GitHub issue from the implementation plan?\
-   a) GitHub issues are required by Python\
-   b) It makes the code run faster\
-   c) It creates a trackable work item that can be assigned, monitored, and closed upon completion\
-   d) To increase the file count
+**Question 1:** What makes a good natural language prompt for code generation?\
+   a) Including purpose, inputs/outputs, dependencies, and constraints\
+   b) Using as few words as possible\
+   c) Asking the AI to "just figure it out"\
+   d) Only specifying the file name
 
-**Question 2:** What does the swarm-advanced skill do during implementation?\
-   a) Deletes old files\
-   b) Spawns specialized agents (coder, tester, reviewer) that work in parallel to implement the plan\
-   c) Sends emails to the team\
-   d) Compresses the codebase
+**Question 2:** Why do we generate separate scripts for each pipeline stage instead of one monolithic script?\
+   a) Separation enables independent testing, easier debugging, and parallel development\
+   b) To use more disk space\
+   c) Claude can only generate small files\
+   d) It's required by Python
 
-**Question 3:** After swarm implementation, what should you verify?\
-   a) All scripts exist, pass syntax validation, and produce expected output\
-   b) Only that files were created\
-   c) That the code has many comments\
-   d) That the files are large
+**Question 3:** What is the key benefit of using the PRD as input for code generation?\
+   a) The PRD provides a clear specification so generated code matches requirements\
+   b) The PRD makes files smaller\
+   c) It's required by Claude Flow\
+   d) PRDs are faster to read than code
 
 **Answers:**
-1. **c)** GitHub issues create trackable work items for assignment, monitoring, and verification
-2. **b)** Swarm-advanced spawns specialized agents that work in parallel
-3. **a)** Verify scripts exist, pass syntax validation, and produce expected output
+1. **a)** Good prompts include purpose, inputs/outputs, dependencies, and constraints for accurate code generation
+2. **a)** Separation enables independent testing, easier debugging, and allows parallel development by multiple agents
+3. **a)** The PRD provides a clear specification ensuring generated code matches intended requirements
 
 ---
 
@@ -810,85 +1058,32 @@ Now that you've generated all 5 pipeline scripts using natural language, it's ti
 
 ### Exercise 4.1: Run the Complete Pipeline
 
-**Task:** Test your generated pipeline with the demo documents using Claude Code.
+**Task:** Test your generated pipeline with the demo documents.
 
 **Instructions:**
 
-**Step 1: Run the Full Pipeline with Claude Code (5 mins)**
-
-In Claude Code, simply ask:
-
-```
-run the full pipeline 'src/agents/pipeline' on 'demo-docs/'
-```
-
-Claude Code will execute the orchestrator and display the results:
-
-```
-🚀 Starting pipeline for 16 documents
-   Max parallel: 10
-   Continue on error: True
-
-📄 Processing: sample3.md
-📄 Processing: doc15.md
-📄 Processing: doc11.md
-📄 Processing: doc13.md
-📄 Processing: doc8.md
-📄 Processing: doc5.md
-  ✅ Success: 1 chunks, 1 embeddings
-  ✅ Success: 1 chunks, 1 embeddings
-📄 Processing: doc4.md
-📄 Processing: doc6.md
-  ✅ Success: 1 chunks, 1 embeddings
-  ...
-
-╔══════════════════════════════════════════════════════════════╗
-║           DOCUMIND PIPELINE PROCESSING REPORT                ║
-╚══════════════════════════════════════════════════════════════╝
-
-📊 SUMMARY
-────────────────────────────────────────────────────────────
-Total Documents:        16
-✅ Successful:          16 (100.0%)
-❌ Failed:              0 (0.0%)
-
-📦 OUTPUT
-────────────────────────────────────────────────────────────
-Total Chunks Created:   16
-Total Embeddings:       16
-Avg Chunks/Document:    1.0
-
-⏱️  PERFORMANCE
-────────────────────────────────────────────────────────────
-Total Time:             0.94s
-Avg Time/Document:      0.65s
-Throughput:             17.0 docs/second
-
-⚙️  STAGE BREAKDOWN (Average Times)
-────────────────────────────────────────────────────────────
-Extract:                0.105s
-Chunk:                  0.051s
-Embed:                  0.211s
-Write:                  0.102s
-
-❌ ERRORS BY STAGE
-────────────────────────────────────────────────────────────
-Extract failures:       0
-Chunk failures:         0
-Embed failures:         0
-Write failures:         0
-
-════════════════════════════════════════════════════════════
-Generated at: 2025-12-12 07:44:14
-
-📝 JSON report saved to: pipeline-results.json
-```
-
-**Alternative: Run directly from terminal:**
+**Step 1: Run the Full Pipeline (5 mins)**
 
 ```bash
-# Run the orchestrator with JSON output
-python src/agents/pipeline/orchestrate.py -d demo-docs/ --max-parallel 10 --json-output pipeline-results.json
+# Navigate to your DocuMind project
+cd ~/documind  # or wherever your project is
+
+# Run the orchestrator on demo documents
+python src/agents/pipeline/orchestrate.py demo-docs/
+
+# Expected output:
+# Processing demo-docs/remote-work-policy.md...
+#   ✓ Extracted (0.12s)
+#   ✓ Chunked: 3 chunks (0.05s)
+#   ✓ Embedded (1.45s)
+#   ✓ Stored (0.28s)
+# Processing demo-docs/expense-policy.md...
+#   ✓ Extracted (0.11s)
+#   ✓ Chunked: 2 chunks (0.04s)
+#   ✓ Embedded (0.92s)
+#   ✓ Stored (0.21s)
+#
+# Pipeline Complete: 2 documents processed
 ```
 
 **Step 2: Verify Data in Supabase (3 mins)**
@@ -903,90 +1098,9 @@ Use the Supabase MCP to:
 ```
 
 **Expected verification:**
-- Documents table should have new records
-- Chunks table should have chunks
+- Documents table should have 2 new records
+- Chunks table should have 5 chunks (3 + 2)
 - Each chunk should have a 1536-dimension embedding vector
-
----
-
-### 🚨 Plot Twist: No Chunks? No Problem!
-
-**Wait, what's this?** You ran the verification and got something like:
-
-```
-Documents table: 5 ✅
-Chunks table: 0 ❌
-Embeddings: 0 ❌
-
-"document_chunks table doesn't exist"
-```
-
-**Don't panic!** 🎉 This is actually a *teachable moment* (fancy way of saying "oops, we forgot something").
-
-Your plan likely missed adding the `document_chunks` table to Supabase. The pipeline ran successfully with mock agents, but there's nowhere to store the real chunks!
-
-**The Fix: Let Claude Handle It**
-
-Simply ask Claude Code:
-
-```
-Create a GitHub issue for adding a document_chunks table with vector embeddings support, then implement it.
-```
-
-**What Happens Next:**
-
-Claude will:
-1. 📝 Create a detailed GitHub issue with the table schema
-2. 🔨 Apply a Supabase migration to create the table
-3. ✅ Verify the table exists with all the right columns
-4. 🎯 Close the issue with implementation notes
-
-**Example Output:**
-```
-✓ Created issue #20: Create document_chunks table with vector embeddings support
-✓ Applied migration: create_document_chunks_table
-✓ Table created with columns: id, document_id, chunk_index, content, embedding, word_count, metadata, created_at
-✓ Vector index created for similarity search
-✓ Closed issue #20
-```
-
-> **💡 Pro Tip:** It may take Claude a few iterations to get everything right—configuring real agents, fixing import paths, handling environment variables. But hey, it's still WAY faster than most development teams... be patient!
-
-**Now Re-run the Pipeline:**
-
-After Claude creates the table, run the pipeline again:
-
-```
-run the full pipeline 'src/agents/pipeline' on 'demo-docs/'
-```
-
-This time you'll see REAL HTTP requests flying:
-- 🤖 `POST https://api.openai.com/v1/embeddings` - Real embeddings!
-- 💾 `POST https://yourproject.supabase.co/rest/v1/document_chunks` - Real storage!
-
-**Verify Again:**
-
-```
-Use the Supabase MCP to:
-1. Count documents in the 'documents' table
-2. List the first 5 chunks from 'document_chunks' table
-3. Verify embeddings exist (check if embedding column is not null)
-```
-
-**Expected (Happy) Results:**
-```
-Documents table: 21 ✅ (5 original + 16 new)
-Chunks table: 16 ✅
-Chunks with embeddings: 16 ✅ (100%!)
-```
-
-**Isn't that fun and easy?** 🎊 You just:
-- Discovered a missing database table
-- Had AI create a GitHub issue
-- Had AI implement the fix
-- Re-ran the pipeline with real data
-
-Welcome to the future of software development!
 
 ---
 
@@ -1035,8 +1149,6 @@ export OPENAI_API_KEY=$OPENAI_API_KEY_BACKUP
 **Instructions:**
 
 Choose ONE of the following enhancements and use natural language to implement it:
-
-**Pro-Tip:** Plan the job, create GitHub issues (and optionally branches), use claude flow (goalie to plan and swarm to implement). 
 
 **Option A: Add Retry Logic to Embedder**
 
@@ -1131,16 +1243,16 @@ Your generated pipeline is complete when:
 ### Quiz 4:
 
 **Question 1:** What's the main benefit of using natural language to enhance code vs. manual editing?\
-   a) Manual editing doesn't work\
+   a) You describe WHAT you want, and the AI figures out HOW to implement it\
    b) It's faster to type natural language than code\
    c) Natural language is more precise than code\
-   d) You describe WHAT you want, and the AI figures out HOW to implement it
+   d) Manual editing doesn't work
 
 **Question 2:** When testing generated code, what should you verify first?\
-   a) The comments are detailed\
+   a) The script runs without syntax errors and handles edge cases\
    b) The code is as short as possible\
    c) The variable names are creative\
-   d) The script runs without syntax errors and handles edge cases
+   d) The comments are detailed
 
 **Question 3:** What demonstrates the "Two Layers" concept in this session?\
    a) Claude Flow helped generate the pipeline scripts, which then run independently at runtime\
@@ -1149,8 +1261,8 @@ Your generated pipeline is complete when:
    d) We ran the pipeline twice
 
 **Answers:**
-1. **d)** Natural language lets you focus on requirements; the AI handles implementation details
-2. **d)** First verify the script runs and handles edge cases before checking other aspects
+1. **a)** Natural language lets you focus on requirements; the AI handles implementation details
+2. **a)** First verify the script runs and handles edge cases before checking other aspects
 3. **a)** Claude Flow (development-time) generated scripts that run independently (runtime)
 
 ---
@@ -1174,79 +1286,30 @@ Each component should be a standalone Python script that:
 
 ---
 
-### Exercise 2.1 Solution: Goal-Planner
+### Exercise 2.1 & 2.2 Solution
 
-**The prompt:**
-```
-use @goal-planner to review the S5-Workshop Module 1 content and the
-DocuMind PRD (docs/spec/documind-prd.md) to create an implementation
-plan for the 5 pipeline components. Save the plan to
-docs/plans/pipeline-components-plan.md
-```
-
-**Expected plan structure:**
-```markdown
-# Pipeline Components Implementation Plan
-
-## Goal: Working Document Processing Pipeline
-
-### Milestone 1: Extractor Component
-**Preconditions:** Project structure exists, demo docs available
-**Actions:** Create extractor.py with multi-format file reading
-**Success Criteria:** Extracts text from .md, .txt, .pdf, .docx files
-
-### Milestone 2: Chunker Component
-**Preconditions:** Extractor produces valid output
-**Actions:** Create chunker.py with semantic text splitting
-**Success Criteria:** Produces ~500-word chunks with 50-word overlap
-
-### Milestone 3: Embedder Component
-**Preconditions:** Chunker produces valid chunks
-**Actions:** Create embedder.py with OpenAI API integration
-**Success Criteria:** Generates 1536-dim vectors using text-embedding-3-small
-
-### Milestone 4: Writer Component
-**Preconditions:** Supabase tables exist from S4
-**Actions:** Create writer.py with Supabase client
-**Success Criteria:** Stores documents and chunks with embeddings
-
-### Milestone 5: Orchestrator Component
-**Preconditions:** All 4 components work independently
-**Actions:** Create orchestrate.py with asyncio coordination
-**Success Criteria:** Processes batch of files end-to-end
-```
-
-**Key insight:** The goal-planner uses GOAP (Goal-Oriented Action Planning) to break complex goals into milestones with preconditions and success criteria.
-
----
-
-### Exercise 3.1 & 3.2 Solution: Swarm Implementation
-
-**Create the issue:**
-```
-create a GitHub issue for docs/plans/pipeline-components-plan.md
-```
-
-**Implement with swarm:**
-```
-implement the issue using the swarm-advanced skill
-```
-
-**Verification commands:**
+**Exercise 2.1:** ClaudeFlow swarm initialization:
 ```bash
-# All scripts should exist
-ls src/agents/pipeline/
-# extractor.py  chunker.py  embedder.py  writer.py  orchestrate.py  __init__.py
-
-# All should pass syntax check
-python -m py_compile src/agents/pipeline/*.py
-
-# Extractor should work on demo file
-python src/agents/pipeline/extractor.py demo-docs/remote-work-policy.md
-# Should output JSON with: success, title, content, file_type
+npx claude-flow@alpha init --force
+npx claude-flow swarm init --topology hierarchical --max-agents 6 --strategy adaptive
 ```
 
-**Key insight:** The swarm-advanced skill spawns coder, tester, and reviewer agents that work in parallel. This is 2-4x faster than sequential implementation and includes automatic quality checks.
+**Exercise 2.2:** Project setup verification:
+```bash
+# Directory structure should exist
+ls src/agents/pipeline/
+# __init__.py
+
+# Demo docs should exist
+ls demo-docs/
+# remote-work-policy.md  expense-policy.md
+
+# Environment variables should be set
+echo $OPENAI_API_KEY
+echo $SUPABASE_URL
+```
+
+**Key insight:** Claude Flow helps you DEVELOP faster (Layer 1). The Python scripts ARE the runtime pipeline (Layer 2). No Claude Flow dependency at runtime.
 
 ---
 
