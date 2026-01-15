@@ -170,12 +170,27 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 import json
 from supabase import create_client, Client
+from dotenv import load_dotenv
 
-# Configuration
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+# Load environment variables from .env file
+load_dotenv()
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+# Lazy-initialized Supabase client
+_supabase_client: Optional[Client] = None
+
+
+def get_supabase_client() -> Client:
+    """Get or create the Supabase client (lazy initialization)."""
+    global _supabase_client
+    if _supabase_client is None:
+        supabase_url = os.getenv("SUPABASE_URL")
+        supabase_key = os.getenv("SUPABASE_ANON_KEY")
+        if not supabase_url or not supabase_key:
+            raise ValueError(
+                "SUPABASE_URL and SUPABASE_ANON_KEY must be set in .env file"
+            )
+        _supabase_client = create_client(supabase_url, supabase_key)
+    return _supabase_client
 
 class ConversationMemory:
     """Manages conversation history with context window management."""
@@ -208,7 +223,7 @@ class ConversationMemory:
         Returns:
             Conversation ID
         """
-        result = supabase.from_('conversations').insert({
+        result = get_supabase_client().from_('conversations').insert({
             'user_id': self.user_id,
             'title': title
         }).execute()
@@ -223,7 +238,7 @@ class ConversationMemory:
         Returns:
             List of message dictionaries
         """
-        result = supabase.from_('messages') \
+        result = get_supabase_client().from_('messages') \
             .select('*') \
             .eq('conversation_id', self.conversation_id) \
             .order('created_at', desc=False) \
@@ -259,13 +274,13 @@ class ConversationMemory:
             'metadata': json.dumps(metadata) if metadata else None
         }
 
-        result = supabase.from_('messages').insert(message_data).execute()
+        result = get_supabase_client().from_('messages').insert(message_data).execute()
 
         message = result.data[0]
         self.messages.append(message)
 
         # Update conversation timestamp
-        supabase.from_('conversations') \
+        get_supabase_client().from_('conversations') \
             .update({'updated_at': datetime.now().isoformat()}) \
             .eq('id', self.conversation_id) \
             .execute()
@@ -352,7 +367,7 @@ def list_user_conversations(user_id: str, limit: int = 10) -> List[Dict[str, Any
     Returns:
         List of conversation dictionaries
     """
-    result = supabase.from_('conversations') \
+    result = get_supabase_client().from_('conversations') \
         .select('*') \
         .eq('user_id', user_id) \
         .order('updated_at', desc=True) \
@@ -368,11 +383,10 @@ def delete_conversation(conversation_id: str) -> None:
     Args:
         conversation_id: Conversation to delete
     """
-    supabase.from_('conversations').delete().eq('id', conversation_id).execute()
+    get_supabase_client().from_('conversations').delete().eq('id', conversation_id).execute()
 
 # Test the conversation memory
 if __name__ == "__main__":
-    import sys
 
     # Create a test conversation
     print("Creating test conversation...")
