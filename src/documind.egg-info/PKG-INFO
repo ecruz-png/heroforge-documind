@@ -1,0 +1,14 @@
+Metadata-Version: 2.4
+Name: documind
+Version: 0.1.0
+Summary: DocuMind - AI-powered document management and RAG system
+Requires-Python: >=3.10
+License-File: LICENSE
+Requires-Dist: openai
+Requires-Dist: supabase
+Requires-Dist: python-dotenv
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: black; extra == "dev"
+Requires-Dist: ruff; extra == "dev"
+Dynamic: license-file
