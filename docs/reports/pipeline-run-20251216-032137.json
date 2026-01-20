@@ -1,0 +1,184 @@
+{
+  "metrics": {
+    "total_documents": 16,
+    "successful": 0,
+    "failed": 16,
+    "total_chunks": 0,
+    "total_embeddings": 0,
+    "total_time": 0.7915549278259277,
+    "stage_times": {
+      "extract": 0.002815723419189453,
+      "chunk": 0.003461599349975586,
+      "embed": 0.0,
+      "write": 0.0
+    },
+    "errors_by_stage": {
+      "extract": 0,
+      "chunk": 16,
+      "embed": 0,
+      "write": 0
+    }
+  },
+  "results": [
+    {
+      "file_path": "demo-docs/bad-file.txt",
+      "status": "error",
+      "stage_completed": "chunk",
+      "chunks_created": 1,
+      "embeddings_generated": 0,
+      "processing_time": 0.7848224639892578,
+      "error_message": "OPENAI_API_KEY environment variable is required. Set it with: export OPENAI_API_KEY='your-key-here'",
+      "metadata": {}
+    },
+    {
+      "file_path": "demo-docs/sample2.txt",
+      "status": "error",
+      "stage_completed": "chunk",
+      "chunks_created": 1,
+      "embeddings_generated": 0,
+      "processing_time": 0.0005075931549072266,
+      "error_message": "OPENAI_API_KEY environment variable is required. Set it with: export OPENAI_API_KEY='your-key-here'",
+      "metadata": {}
+    },
+    {
+      "file_path": "demo-docs/sample3.md",
+      "status": "error",
+      "stage_completed": "chunk",
+      "chunks_created": 1,
+      "embeddings_generated": 0,
+      "processing_time": 0.0003123283386230469,
+      "error_message": "OPENAI_API_KEY environment variable is required. Set it with: export OPENAI_API_KEY='your-key-here'",
+      "metadata": {}
+    },
+    {
+      "file_path": "demo-docs/doc15.md",
+      "status": "error",
+      "stage_completed": "chunk",
+      "chunks_created": 1,
+      "embeddings_generated": 0,
+      "processing_time": 0.0002696514129638672,
+      "error_message": "OPENAI_API_KEY environment variable is required. Set it with: export OPENAI_API_KEY='your-key-here'",
+      "metadata": {}
+    },
+    {
+      "file_path": "demo-docs/doc11.md",
+      "status": "error",
+      "stage_completed": "chunk",
+      "chunks_created": 1,
+      "embeddings_generated": 0,
+      "processing_time": 0.0002789497375488281,
+      "error_message": "OPENAI_API_KEY environment variable is required. Set it with: export OPENAI_API_KEY='your-key-here'",
+      "metadata": {}
+    },
+    {
+      "file_path": "demo-docs/doc13.md",
+      "status": "error",
+      "stage_completed": "chunk",
+      "chunks_created": 1,
+      "embeddings_generated": 0,
+      "processing_time": 0.0002543926239013672,
+      "error_message": "OPENAI_API_KEY environment variable is required. Set it with: export OPENAI_API_KEY='your-key-here'",
+      "metadata": {}
+    },
+    {
+      "file_path": "demo-docs/doc8.md",
+      "status": "error",
+      "stage_completed": "chunk",
+      "chunks_created": 1,
+      "embeddings_generated": 0,
+      "processing_time": 0.00025081634521484375,
+      "error_message": "OPENAI_API_KEY environment variable is required. Set it with: export OPENAI_API_KEY='your-key-here'",
+      "metadata": {}
+    },
+    {
+      "file_path": "demo-docs/doc5.md",
+      "status": "error",
+      "stage_completed": "chunk",
+      "chunks_created": 1,
+      "embeddings_generated": 0,
+      "processing_time": 0.0002760887145996094,
+      "error_message": "OPENAI_API_KEY environment variable is required. Set it with: export OPENAI_API_KEY='your-key-here'",
+      "metadata": {}
+    },
+    {
+      "file_path": "demo-docs/doc14.md",
+      "status": "error",
+      "stage_completed": "chunk",
+      "chunks_created": 1,
+      "embeddings_generated": 0,
+      "processing_time": 0.0002567768096923828,
+      "error_message": "OPENAI_API_KEY environment variable is required. Set it with: export OPENAI_API_KEY='your-key-here'",
+      "metadata": {}
+    },
+    {
+      "file_path": "demo-docs/sample1.md",
+      "status": "error",
+      "stage_completed": "chunk",
+      "chunks_created": 1,
+      "embeddings_generated": 0,
+      "processing_time": 0.0002541542053222656,
+      "error_message": "OPENAI_API_KEY environment variable is required. Set it with: export OPENAI_API_KEY='your-key-here'",
+      "metadata": {}
+    },
+    {
+      "file_path": "demo-docs/doc9.md",
+      "status": "error",
+      "stage_completed": "chunk",
+      "chunks_created": 1,
+      "embeddings_generated": 0,
+      "processing_time": 0.0002474784851074219,
+      "error_message": "OPENAI_API_KEY environment variable is required. Set it with: export OPENAI_API_KEY='your-key-here'",
+      "metadata": {}
+    },
+    {
+      "file_path": "demo-docs/doc7.md",
+      "status": "error",
+      "stage_completed": "chunk",
+      "chunks_created": 1,
+      "embeddings_generated": 0,
+      "processing_time": 0.0002942085266113281,
+      "error_message": "OPENAI_API_KEY environment variable is required. Set it with: export OPENAI_API_KEY='your-key-here'",
+      "metadata": {}
+    },
+    {
+      "file_path": "demo-docs/doc4.md",
+      "status": "error",
+      "stage_completed": "chunk",
+      "chunks_created": 1,
+      "embeddings_generated": 0,
+      "processing_time": 0.00026416778564453125,
+      "error_message": "OPENAI_API_KEY environment variable is required. Set it with: export OPENAI_API_KEY='your-key-here'",
+      "metadata": {}
+    },
+    {
+      "file_path": "demo-docs/doc6.md",
+      "status": "error",
+      "stage_completed": "chunk",
+      "chunks_created": 1,
+      "embeddings_generated": 0,
+      "processing_time": 0.0002474784851074219,
+      "error_message": "OPENAI_API_KEY environment variable is required. Set it with: export OPENAI_API_KEY='your-key-here'",
+      "metadata": {}
+    },
+    {
+      "file_path": "demo-docs/doc10.md",
+      "status": "error",
+      "stage_completed": "chunk",
+      "chunks_created": 1,
+      "embeddings_generated": 0,
+      "processing_time": 0.0002453327178955078,
+      "error_message": "OPENAI_API_KEY environment variable is required. Set it with: export OPENAI_API_KEY='your-key-here'",
+      "metadata": {}
+    },
+    {
+      "file_path": "demo-docs/doc12.md",
+      "status": "error",
+      "stage_completed": "chunk",
+      "chunks_created": 1,
+      "embeddings_generated": 0,
+      "processing_time": 0.00028228759765625,
+      "error_message": "OPENAI_API_KEY environment variable is required. Set it with: export OPENAI_API_KEY='your-key-here'",
+      "metadata": {}
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+openai
+supabase
+python-dotenv
+
+[dev]
+pytest
+black
+ruff

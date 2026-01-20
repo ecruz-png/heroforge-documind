@@ -1,0 +1,146 @@
+{
+  "metrics": {
+    "total_documents": 16,
+    "successful": 16,
+    "failed": 0,
+    "total_chunks": 16,
+    "total_embeddings": 16,
+    "total_time": 14.808619260787964,
+    "stage_times": {
+      "extract": 0.004949331283569336,
+      "chunk": 0.005875349044799805,
+      "embed": 6.913009166717529,
+      "write": 7.8837785720825195
+    }
+  },
+  "results": [
+    {
+      "file_path": "demo-docs/sample3.md",
+      "status": "success",
+      "stage_completed": "write",
+      "chunks_created": 1,
+      "processing_time": 2.8067514896392822,
+      "error_message": null
+    },
+    {
+      "file_path": "demo-docs/doc15.md",
+      "status": "success",
+      "stage_completed": "write",
+      "chunks_created": 1,
+      "processing_time": 0.5785398483276367,
+      "error_message": null
+    },
+    {
+      "file_path": "demo-docs/doc11.md",
+      "status": "success",
+      "stage_completed": "write",
+      "chunks_created": 1,
+      "processing_time": 1.5215637683868408,
+      "error_message": null
+    },
+    {
+      "file_path": "demo-docs/doc13.md",
+      "status": "success",
+      "stage_completed": "write",
+      "chunks_created": 1,
+      "processing_time": 1.3606956005096436,
+      "error_message": null
+    },
+    {
+      "file_path": "demo-docs/doc8.md",
+      "status": "success",
+      "stage_completed": "write",
+      "chunks_created": 1,
+      "processing_time": 0.860633134841919,
+      "error_message": null
+    },
+    {
+      "file_path": "demo-docs/doc5.md",
+      "status": "success",
+      "stage_completed": "write",
+      "chunks_created": 1,
+      "processing_time": 0.504774808883667,
+      "error_message": null
+    },
+    {
+      "file_path": "demo-docs/doc14.md",
+      "status": "success",
+      "stage_completed": "write",
+      "chunks_created": 1,
+      "processing_time": 0.4586780071258545,
+      "error_message": null
+    },
+    {
+      "file_path": "demo-docs/sample1.md",
+      "status": "success",
+      "stage_completed": "write",
+      "chunks_created": 1,
+      "processing_time": 0.6205275058746338,
+      "error_message": null
+    },
+    {
+      "file_path": "demo-docs/doc9.md",
+      "status": "success",
+      "stage_completed": "write",
+      "chunks_created": 1,
+      "processing_time": 0.6166834831237793,
+      "error_message": null
+    },
+    {
+      "file_path": "demo-docs/doc7.md",
+      "status": "success",
+      "stage_completed": "write",
+      "chunks_created": 1,
+      "processing_time": 1.7858476638793945,
+      "error_message": null
+    },
+    {
+      "file_path": "demo-docs/doc4.md",
+      "status": "success",
+      "stage_completed": "write",
+      "chunks_created": 1,
+      "processing_time": 0.5510499477386475,
+      "error_message": null
+    },
+    {
+      "file_path": "demo-docs/doc6.md",
+      "status": "success",
+      "stage_completed": "write",
+      "chunks_created": 1,
+      "processing_time": 0.5057029724121094,
+      "error_message": null
+    },
+    {
+      "file_path": "demo-docs/doc10.md",
+      "status": "success",
+      "stage_completed": "write",
+      "chunks_created": 1,
+      "processing_time": 0.952465295791626,
+      "error_message": null
+    },
+    {
+      "file_path": "demo-docs/doc12.md",
+      "status": "success",
+      "stage_completed": "write",
+      "chunks_created": 1,
+      "processing_time": 0.5447726249694824,
+      "error_message": null
+    },
+    {
+      "file_path": "demo-docs/bad-file.txt",
+      "status": "success",
+      "stage_completed": "write",
+      "chunks_created": 1,
+      "processing_time": 0.5339024066925049,
+      "error_message": null
+    },
+    {
+      "file_path": "demo-docs/sample2.txt",
+      "status": "success",
+      "stage_completed": "write",
+      "chunks_created": 1,
+      "processing_time": 0.6060307025909424,
+      "error_message": null
+    }
+  ]
+}
