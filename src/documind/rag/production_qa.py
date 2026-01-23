@@ -64,11 +64,13 @@ def rerank_results(
         phrase_boost = 0.1 if query.lower() in content_lower else 0
 
         # Title relevance boost
-        title_matches = sum(1 for term in query_terms if term in doc_name_lower)
+        title_matches = sum(
+            1 for term in query_terms if term in doc_name_lower)
         title_boost = min(title_matches * 0.03, 0.1)
 
         # Combined score
-        result["rerank_score"] = base_score + keyword_boost + phrase_boost + title_boost
+        result["rerank_score"] = base_score + \
+            keyword_boost + phrase_boost + title_boost
 
     # Sort by rerank score
     results.sort(key=lambda x: x.get("rerank_score", 0), reverse=True)
@@ -95,7 +97,8 @@ def assemble_context(documents: List[Dict[str, Any]], max_tokens: int = 3000) ->
 
         doc_length = len(doc_text) + 4
         if current_chars + doc_length > max_chars:
-            remaining_chars = max_chars - current_chars - len(source_header) - 10
+            remaining_chars = max_chars - \
+                current_chars - len(source_header) - 10
             if remaining_chars > 100:
                 truncated_content = content[:remaining_chars] + "..."
                 doc_text = f"{source_header}\n{truncated_content}"
@@ -171,7 +174,8 @@ class ProductionQA:
         start_time = time.time()
 
         # Resolve model
-        model_id = MODELS.get(model, self.default_model) if model else self.default_model
+        model_id = MODELS.get(
+            model, self.default_model) if model else self.default_model
 
         # Step 1: Retrieve relevant documents
         if use_hybrid:
@@ -222,11 +226,14 @@ ANSWER:"""
             preview = content[:200] + "..." if len(content) > 200 else content
             sources.append({
                 "id": doc.get("id"),
-                "document": doc.get("document_name"),
-                "chunk": doc.get("chunk_index"),
-                "similarity": doc.get("similarity"),
-                "rerank_score": doc.get("rerank_score"),
-                "preview": preview
+                "citation_number": citation_num,
+                "document": doc.get("document_name", "Unknown"),
+                "chunk_index": doc.get("chunk_index", 0),
+                "similarity": round(doc.get("similarity", 0), 4),
+                "link": doc.get("document_link", ""),
+                "content": content,  # Full content for evaluation
+                "preview": content[:200] + "..." if len(content) > 200 else content,
+                "was_cited": was_cited,
             })
 
         response_time = time.time() - start_time
@@ -303,7 +310,8 @@ ANSWER:"""
         for model_key in models:
             model_id = MODELS.get(model_key)
             if not model_id:
-                results[model_key] = {"error": f"Unknown model: {model_key}", "status": "error"}
+                results[model_key] = {
+                    "error": f"Unknown model: {model_key}", "status": "error"}
                 continue
 
             try:
@@ -408,7 +416,8 @@ ANSWER:"""
 
             # Calculate metrics
             total_queries = len(logs)
-            avg_response_time = sum(log.get("response_time", 0) for log in logs) / total_queries
+            avg_response_time = sum(log.get("response_time", 0)
+                                    for log in logs) / total_queries
 
             # Model usage breakdown
             model_usage = {}
@@ -421,14 +430,16 @@ ANSWER:"""
             for log in logs:
                 sources_json = log.get("sources", "[]")
                 try:
-                    sources = json.loads(sources_json) if isinstance(sources_json, str) else sources_json
+                    sources = json.loads(sources_json) if isinstance(
+                        sources_json, str) else sources_json
                     for source in sources:
                         doc_name = source.get("document", "Unknown")
                         doc_counts[doc_name] = doc_counts.get(doc_name, 0) + 1
                 except (json.JSONDecodeError, TypeError):
                     pass
 
-            top_documents = sorted(doc_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+            top_documents = sorted(
+                doc_counts.items(), key=lambda x: x[1], reverse=True)[:10]
 
             return {
                 "period_days": days,
@@ -461,13 +472,19 @@ def main():
     """
     import argparse
 
-    parser = argparse.ArgumentParser(description="DocuMind Production Q&A System")
+    parser = argparse.ArgumentParser(
+        description="DocuMind Production Q&A System")
     parser.add_argument("query", nargs="?", help="Question to ask")
-    parser.add_argument("--model", "-m", default="claude", choices=["claude", "gpt4", "gemini"])
-    parser.add_argument("--hybrid", "-H", action="store_true", help="Use hybrid search")
-    parser.add_argument("--compare", "-c", action="store_true", help="Compare all models")
-    parser.add_argument("--analytics", "-a", type=int, metavar="DAYS", help="Show analytics for N days")
-    parser.add_argument("--json", "-j", action="store_true", help="Output as JSON")
+    parser.add_argument("--model", "-m", default="claude",
+                        choices=["claude", "gpt4", "gemini"])
+    parser.add_argument("--hybrid", "-H", action="store_true",
+                        help="Use hybrid search")
+    parser.add_argument("--compare", "-c",
+                        action="store_true", help="Compare all models")
+    parser.add_argument("--analytics", "-a", type=int,
+                        metavar="DAYS", help="Show analytics for N days")
+    parser.add_argument("--json", "-j", action="store_true",
+                        help="Output as JSON")
 
     args = parser.parse_args()
 
@@ -483,7 +500,8 @@ def main():
             print(f"Query Analytics (Last {analytics['period_days']} days)")
             print("=" * 60)
             print(f"Total Queries: {analytics.get('total_queries', 0)}")
-            print(f"Avg Response Time: {analytics.get('avg_response_time', 0)}s")
+            print(
+                f"Avg Response Time: {analytics.get('avg_response_time', 0)}s")
             print(f"Queries/Day: {analytics.get('queries_per_day', 0)}")
             print("\nModel Usage:")
             for model, count in analytics.get('model_usage', {}).items():
@@ -532,7 +550,8 @@ def main():
                 print("ANSWER:")
                 print("-" * 60)
                 print(result["answer"])
-                print(f"\n[{result['search_type']} search | {result['response_time']}s | {result['context_chunks']} sources]")
+                print(
+                    f"\n[{result['search_type']} search | {result['response_time']}s | {result['context_chunks']} sources]")
 
                 if result["citations"]:
                     print("\nCitations:")
@@ -561,7 +580,8 @@ def main():
                     print(f"Query: {args.query}")
                     print("=" * 60)
                     for model, resp in result["results"].items():
-                        print(f"\n--- {model.upper()} ({resp.get('response_time', 'N/A')}s) ---")
+                        print(
+                            f"\n--- {model.upper()} ({resp.get('response_time', 'N/A')}s) ---")
                         if resp["status"] == "success":
                             print(resp["answer"])
                         else:
@@ -572,7 +592,8 @@ def main():
                     print("=" * 60)
                     print(f"\nQuery: {result['query']}")
                     print(f"Model: {result['model']}")
-                    print(f"Search: {result['search_type']} | Time: {result['response_time']}s")
+                    print(
+                        f"Search: {result['search_type']} | Time: {result['response_time']}s")
                     print("-" * 60)
                     print("\nANSWER:")
                     print(result["answer"])
@@ -581,7 +602,8 @@ def main():
                     for i, source in enumerate(result["sources"], 1):
                         sim = source.get("similarity")
                         sim_str = f"{sim:.4f}" if sim else "N/A"
-                        print(f"  {i}. {source['document']} (chunk {source['chunk']}, sim: {sim_str})")
+                        print(
+                            f"  {i}. {source['document']} (chunk {source['chunk']}, sim: {sim_str})")
 
         except Exception as e:
             print(f"Error: {e}")

@@ -128,14 +128,29 @@ def search_documents(
 
     # Format results
     results = []
-    for row in response.data:
+    for item in response.data or []:
+        metadata = item.get("metadata", {})
+        # Try multiple field names for document name
+        doc_name = (
+            metadata.get("document_name") or
+            metadata.get("file_name") or
+            metadata.get("title") or
+            "Unknown"
+        )
+        # Strip YAML frontmatter from content if present
+        content = item.get("content", "")
+        if content.startswith("---"):
+            parts = content.split("---", 2)
+            if len(parts) >= 3:
+                content = parts[2].strip()
+
         results.append({
-            "id": row.get("chunk_id"),
-            "content": row.get("chunk_text"),
-            "metadata": row.get("metadata", {}),
-            "similarity": row.get("similarity"),
-            "document_name": row.get("document_title"),
-            "chunk_index": row.get("chunk_index")
+            "id": item.get("id"),
+            "content": content,
+            "metadata": metadata,
+            "similarity": item.get("similarity"),
+            "document_name": doc_name,
+            "chunk_index": metadata.get("chunk_index", 0)
         })
 
     return results
@@ -193,7 +208,7 @@ def hybrid_search(
     semantic_results = search_documents(
         query=query,
         top_k=top_k,
-        similarity_threshold=0.5  # Lower threshold for hybrid search
+        similarity_threshold=0.3  # Lower threshold to capture more matches
     )
 
     # Add search type and apply semantic weight
