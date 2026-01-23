@@ -1,11 +1,12 @@
 """
-Semantic Search Module for DocuMind RAG System.
+DocuMind Semantic Search Module
 
-This module provides semantic and hybrid search capabilities for document retrieval
-using OpenAI embeddings and Supabase vector search with pgvector.
+Provides semantic and hybrid search capabilities for document retrieval
+using OpenAI embeddings and Supabase vector search.
 """
 
 import os
+from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 from dotenv import load_dotenv
@@ -13,56 +14,67 @@ from openai import OpenAI
 from supabase import create_client, Client
 
 # Load environment variables from .env file
-load_dotenv()
+env_path = Path(__file__).resolve().parents[3] / ".env"
+load_dotenv(env_path)
+
 
 # Initialize clients using environment variables
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY") or os.getenv("SUPABASE_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-# Validate environment variables
-if not SUPABASE_URL or not SUPABASE_KEY:
-    raise ValueError(
-        "SUPABASE_URL and SUPABASE_KEY environment variables must be set")
+# Client instances (lazy initialization)
+_openai_client: Optional[OpenAI] = None
+_supabase_client: Optional[Client] = None
 
-if not OPENAI_API_KEY:
-    raise ValueError("OPENAI_API_KEY environment variable must be set")
 
-# Initialize Supabase client
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+def _get_openai_client() -> OpenAI:
+    """Get or create OpenAI client instance."""
+    global _openai_client
+    if _openai_client is None:
+        if not OPENAI_API_KEY:
+            raise ValueError("OPENAI_API_KEY environment variable is not set")
+        _openai_client = OpenAI(api_key=OPENAI_API_KEY)
+    return _openai_client
 
-# Initialize OpenAI client
-openai_client = OpenAI(api_key=OPENAI_API_KEY)
+
+def _get_supabase_client() -> Client:
+    """Get or create Supabase client instance."""
+    global _supabase_client
+    if _supabase_client is None:
+        if not SUPABASE_URL or not SUPABASE_KEY:
+            raise ValueError("SUPABASE_URL and SUPABASE_KEY environment variables must be set")
+        _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    return _supabase_client
 
 
 def get_query_embedding(query: str) -> List[float]:
     """
-    Generate embedding vector for a search query using OpenAI.
+    Generate embedding for a search query using OpenAI.
 
-    Uses the text-embedding-3-small model to convert text into a 1536-dimensional
-    vector representation suitable for semantic similarity search.
+    Uses the text-embedding-3-small model to create a vector representation
+    of the query text for semantic similarity search.
 
     Args:
         query: The search query text to embed.
 
     Returns:
-        A list of floats representing the 1536-dimensional embedding vector.
+        A list of floats representing the embedding vector.
 
     Raises:
-        openai.APIError: If the OpenAI API request fails.
-        ValueError: If the query is empty.
+        ValueError: If OPENAI_API_KEY is not configured.
+        openai.OpenAIError: If the API call fails.
 
     Example:
         >>> embedding = get_query_embedding("What is our vacation policy?")
         >>> len(embedding)
         1536
     """
-    if not query or not query.strip():
-        raise ValueError("Query cannot be empty")
+    client = _get_openai_client()
 
-    response = openai_client.embeddings.create(
+    response = client.embeddings.create(
         model="text-embedding-3-small",
-        input=query.strip()
+        input=query
     )
 
     return response.data[0].embedding
@@ -71,32 +83,31 @@ def get_query_embedding(query: str) -> List[float]:
 def search_documents(
     query: str,
     top_k: int = 5,
-    similarity_threshold: float = 0.35
+    similarity_threshold: float = 0.1
 ) -> List[Dict[str, Any]]:
     """
-    Perform semantic search on document chunks using vector similarity.
+    Search documents using semantic similarity.
 
-    Generates an embedding for the query and searches the document_chunks table
-    using the Supabase RPC function 'match_documents' which performs cosine
-    similarity matching against stored document embeddings.
+    Generates an embedding for the query and searches for similar documents
+    using Supabase's vector similarity search via the match_documents RPC function.
 
     Args:
         query: The search query text.
         top_k: Maximum number of results to return. Defaults to 5.
         similarity_threshold: Minimum similarity score (0-1) for results.
-            Defaults to 0.35.
+            Defaults to 0.7.
 
     Returns:
-        A list of dictionaries containing matched documents with keys:
-            - id: UUID of the document chunk
-            - content: The chunk text content
-            - metadata: Additional metadata from the chunk
+        A list of dictionaries containing matching documents with keys:
+            - id: Document chunk unique identifier
+            - content: The text content of the chunk
+            - metadata: Additional document metadata
             - similarity: Cosine similarity score (0-1)
-            - document_name: Title of the parent document
-            - chunk_index: Position of chunk within the document
+            - document_name: Name of the source document
+            - chunk_index: Index of this chunk within the document
 
     Raises:
-        ValueError: If query is empty or parameters are invalid.
+        ValueError: If required environment variables are not configured.
         Exception: If the database query fails.
 
     Example:
@@ -104,19 +115,13 @@ def search_documents(
         >>> for doc in results:
         ...     print(f"{doc['document_name']}: {doc['similarity']:.2f}")
     """
-    if not query or not query.strip():
-        raise ValueError("Query cannot be empty")
-
-    if top_k < 1:
-        raise ValueError("top_k must be at least 1")
-
-    if not 0 <= similarity_threshold <= 1:
-        raise ValueError("similarity_threshold must be between 0 and 1")
-
-    # Generate embedding for the query
+    # Generate query embedding
     query_embedding = get_query_embedding(query)
 
-    # Call Supabase RPC function for vector similarity search
+    # Get Supabase client
+    supabase = _get_supabase_client()
+
+    # Call the match_documents RPC function
     response = supabase.rpc(
         "match_documents",
         {
@@ -162,243 +167,165 @@ def hybrid_search(
     semantic_weight: float = 0.7
 ) -> List[Dict[str, Any]]:
     """
-    Perform hybrid search combining semantic and keyword-based retrieval.
+    Perform hybrid search combining semantic and keyword search.
 
-    This function merges results from vector similarity search with full-text
-    keyword search to improve recall while maintaining semantic relevance.
-    Results are weighted and deduplicated before returning.
+    Combines vector similarity search with full-text keyword search to
+    improve recall and handle both conceptual and exact-match queries.
 
     Args:
         query: The search query text.
         top_k: Maximum number of results to return. Defaults to 5.
-        semantic_weight: Weight for semantic results (0-1). Keyword weight
-            will be (1 - semantic_weight). Defaults to 0.7.
+        semantic_weight: Weight given to semantic results (0-1).
+            Keyword results receive weight of (1 - semantic_weight).
+            Defaults to 0.7.
 
     Returns:
-        A list of dictionaries containing matched documents with keys:
-            - id: UUID of the document chunk
-            - content: The chunk text content
-            - metadata: Additional metadata from the chunk
-            - similarity: Combined relevance score
-            - document_name: Title of the parent document
-            - chunk_index: Position of chunk within the document
-            - search_type: 'semantic', 'keyword', or 'both'
+        A list of dictionaries containing matching documents with keys:
+            - id: Document chunk unique identifier
+            - content: The text content of the chunk
+            - metadata: Additional document metadata
+            - similarity: Combined score (0-1)
+            - document_name: Name of the source document
+            - chunk_index: Index of this chunk within the document
+            - search_type: "semantic", "keyword", or "both"
 
     Raises:
-        ValueError: If query is empty or parameters are invalid.
-        Exception: If the database query fails.
+        ValueError: If required environment variables are not configured.
+        Exception: If database queries fail.
 
     Example:
-        >>> results = hybrid_search("remote work policy", top_k=5)
+        >>> results = hybrid_search("annual leave policy", top_k=5)
         >>> for doc in results:
         ...     print(f"[{doc['search_type']}] {doc['document_name']}")
     """
-    if not query or not query.strip():
-        raise ValueError("Query cannot be empty")
-
-    if top_k < 1:
-        raise ValueError("top_k must be at least 1")
-
-    if not 0 <= semantic_weight <= 1:
-        raise ValueError("semantic_weight must be between 0 and 1")
-
-    keyword_weight = 1 - semantic_weight
-
     # Get semantic search results
     semantic_results = search_documents(
-        query=query,
+        query,
         top_k=top_k,
         similarity_threshold=0.3  # Lower threshold to capture more matches
     )
 
-    # Add search type and apply semantic weight
-    for result in semantic_results:
-        result["search_type"] = "semantic"
-        result["weighted_score"] = result["similarity"] * semantic_weight
+    # Get Supabase client for keyword search
+    supabase = _get_supabase_client()
 
-    # Get keyword search results using Supabase full-text search
-    # Search in document_chunks table using ilike for keyword matching
-    search_terms = query.strip().split()
-    keyword_query = " & ".join(search_terms)
+    # Perform keyword search using Supabase full-text search
+    keyword_response = supabase.table("document_chunks").select(
+        "id, content, metadata"
+    ).ilike("content", f"%{query}%").limit(top_k).execute()
 
-    try:
-        # Use textSearch for full-text search on chunk_text
-        keyword_response = supabase.from_("document_chunks") \
-            .select(
-                "id, chunk_text, chunk_index, metadata, "
-                "document_id, documents!inner(title)"
-        ) \
-            .text_search("chunk_text", keyword_query, config="english") \
-            .limit(top_k) \
-            .execute()
-
-        keyword_results = []
-        for row in keyword_response.data:
-            keyword_results.append({
-                "id": row.get("id"),
-                "content": row.get("chunk_text"),
-                "metadata": row.get("metadata", {}),
-                "similarity": 0.8,  # Default score for keyword matches
-                "document_name": row.get("documents", {}).get("title"),
-                "chunk_index": row.get("chunk_index"),
-                "search_type": "keyword",
-                "weighted_score": 0.8 * keyword_weight
-            })
-    except Exception:
-        # Fallback to ilike search if full-text search fails
-        keyword_response = supabase.from_("document_chunks") \
-            .select(
-                "id, chunk_text, chunk_index, metadata, "
-                "document_id, documents!inner(title)"
-        ) \
-            .ilike("chunk_text", f"%{query}%") \
-            .limit(top_k) \
-            .execute()
-
-        keyword_results = []
-        for row in keyword_response.data:
-            keyword_results.append({
-                "id": row.get("id"),
-                "content": row.get("chunk_text"),
-                "metadata": row.get("metadata", {}),
-                "similarity": 0.6,  # Lower score for ilike matches
-                "document_name": row.get("documents", {}).get("title"),
-                "chunk_index": row.get("chunk_index"),
-                "search_type": "keyword",
-                "weighted_score": 0.6 * keyword_weight
-            })
-
-    # Merge results, avoiding duplicates
-    seen_ids = set()
-    merged_results = []
-
-    # Process semantic results first (higher priority)
-    for result in semantic_results:
-        result_id = result["id"]
-        if result_id not in seen_ids:
-            seen_ids.add(result_id)
-            merged_results.append(result)
-
-    # Add keyword results that aren't duplicates
-    for result in keyword_results:
-        result_id = result["id"]
-        if result_id not in seen_ids:
-            seen_ids.add(result_id)
-            merged_results.append(result)
-        else:
-            # Update existing result to indicate it matched both
-            for merged in merged_results:
-                if merged["id"] == result_id:
-                    merged["search_type"] = "both"
-                    merged["weighted_score"] += result["weighted_score"]
-                    break
-
-    # Sort by weighted score and return top_k
-    merged_results.sort(key=lambda x: x.get("weighted_score", 0), reverse=True)
-
-    # Clean up and format final results
-    final_results = []
-    for result in merged_results[:top_k]:
-        final_results.append({
-            "id": result["id"],
-            "content": result["content"],
-            "metadata": result["metadata"],
-            "similarity": result.get("weighted_score", result["similarity"]),
-            "document_name": result["document_name"],
-            "chunk_index": result["chunk_index"],
-            "search_type": result["search_type"]
+    # Process keyword results
+    keyword_results = []
+    for item in keyword_response.data or []:
+        metadata = item.get("metadata", {})
+        doc_name = (
+            metadata.get("document_name") or
+            metadata.get("file_name") or
+            metadata.get("title") or
+            "Unknown"
+        )
+        keyword_results.append({
+            "id": item.get("id"),
+            "content": item.get("content"),
+            "metadata": metadata,
+            "similarity": 1.0,  # Full match score for keyword results
+            "document_name": doc_name,
+            "chunk_index": metadata.get("chunk_index", 0)
         })
 
-    return final_results
+    # Merge results avoiding duplicates
+    seen_ids = set()
+    combined_results = []
 
+    # Create lookup for keyword result IDs
+    keyword_ids = {r["id"] for r in keyword_results}
 
-def populate_embeddings() -> int:
-    """
-    Generate and store embeddings for all document chunks that don't have them.
+    # Process semantic results
+    for result in semantic_results:
+        doc_id = result["id"]
+        seen_ids.add(doc_id)
 
-    Fetches chunks with NULL embeddings, generates embeddings using OpenAI,
-    and updates the database with the vectors.
+        # Check if also found in keyword results
+        if doc_id in keyword_ids:
+            # Found in both - combine scores
+            keyword_weight = 1 - semantic_weight
+            combined_score = (result["similarity"] * semantic_weight) + (1.0 * keyword_weight)
+            result["similarity"] = min(combined_score, 1.0)
+            result["search_type"] = "both"
+        else:
+            # Semantic only - apply weight
+            result["similarity"] = result["similarity"] * semantic_weight
+            result["search_type"] = "semantic"
 
-    Returns:
-        Number of chunks that were updated with embeddings.
-    """
-    # Fetch chunks without embeddings
-    response = supabase.from_("document_chunks") \
-        .select("id, chunk_text") \
-        .is_("embedding", "null") \
-        .execute()
+        combined_results.append(result)
 
-    chunks = response.data
-    if not chunks:
-        print("All chunks already have embeddings.")
-        return 0
+    # Add keyword-only results
+    keyword_weight = 1 - semantic_weight
+    for result in keyword_results:
+        if result["id"] not in seen_ids:
+            result["similarity"] = 1.0 * keyword_weight
+            result["search_type"] = "keyword"
+            combined_results.append(result)
 
-    print(f"Found {len(chunks)} chunks without embeddings. Generating...")
+    # Sort by combined similarity score and return top_k
+    combined_results.sort(key=lambda x: x["similarity"], reverse=True)
 
-    updated_count = 0
-    for chunk in chunks:
-        chunk_id = chunk["id"]
-        chunk_text = chunk["chunk_text"]
-
-        # Generate embedding
-        embedding = get_query_embedding(chunk_text)
-
-        # Update the chunk with the embedding
-        supabase.from_("document_chunks") \
-            .update({"embedding": embedding}) \
-            .eq("id", chunk_id) \
-            .execute()
-
-        updated_count += 1
-        print(f"  Updated chunk {updated_count}/{len(chunks)}")
-
-    print(f"Successfully populated {updated_count} embeddings.")
-    return updated_count
+    return combined_results[:top_k]
 
 
 if __name__ == "__main__":
-    # Test the search functionality
+    # Test code for the search module
     print("=" * 60)
     print("DocuMind Semantic Search Test")
     print("=" * 60)
 
     test_query = "What is our vacation policy?"
+
     print(f"\nSearch Query: '{test_query}'")
     print("-" * 60)
 
     try:
         # Test semantic search
-        print("\n[Semantic Search Results]")
-        results = search_documents(
-            test_query, top_k=5, similarity_threshold=0.5)
+        print("\n📊 Semantic Search Results:")
+        print("-" * 40)
 
-        if results:
-            for i, doc in enumerate(results, 1):
-                print(f"\n{i}. {doc['document_name']}")
-                print(f"   Similarity: {doc['similarity']:.4f}")
-                print(f"   Chunk Index: {doc['chunk_index']}")
-                print(f"   Content: {doc['content'][:150]}...")
+        results = search_documents(test_query, top_k=5, similarity_threshold=0.3)
+
+        if not results:
+            print("  No results found.")
         else:
-            print("   No results found.")
+            for i, doc in enumerate(results, 1):
+                print(f"\n  Result {i}:")
+                print(f"    Document: {doc['document_name']}")
+                print(f"    Similarity: {doc['similarity']:.4f}")
+                print(f"    Chunk Index: {doc['chunk_index']}")
+                print(f"    Content Preview: {doc['content'][:150]}...")
 
         # Test hybrid search
-        print("\n" + "-" * 60)
-        print("\n[Hybrid Search Results]")
+        print("\n\n🔀 Hybrid Search Results:")
+        print("-" * 40)
+
         hybrid_results = hybrid_search(test_query, top_k=5)
 
-        if hybrid_results:
-            for i, doc in enumerate(hybrid_results, 1):
-                print(
-                    f"\n{i}. [{doc['search_type'].upper()}] {doc['document_name']}")
-                print(f"   Score: {doc['similarity']:.4f}")
-                print(f"   Chunk Index: {doc['chunk_index']}")
-                print(f"   Content: {doc['content'][:150]}...")
+        if not hybrid_results:
+            print("  No results found.")
         else:
-            print("   No results found.")
+            for i, doc in enumerate(hybrid_results, 1):
+                print(f"\n  Result {i}:")
+                print(f"    Document: {doc['document_name']}")
+                print(f"    Score: {doc['similarity']:.4f}")
+                print(f"    Search Type: {doc['search_type']}")
+                print(f"    Content Preview: {doc['content'][:150]}...")
+
+        print("\n" + "=" * 60)
+        print("✅ Search test completed successfully!")
+        print("=" * 60)
 
     except ValueError as e:
-        print(f"Validation Error: {e}")
+        print(f"\n❌ Configuration Error: {e}")
+        print("   Please set the required environment variables:")
+        print("   - OPENAI_API_KEY")
+        print("   - SUPABASE_URL")
+        print("   - SUPABASE_ANON_KEY (or SUPABASE_KEY)")
     except Exception as e:
-        print(f"Error during search: {e}")
-
-    print("\n" + "=" * 60)
+        print(f"\n❌ Error during search: {e}")
+        raise
