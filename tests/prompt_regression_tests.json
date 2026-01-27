@@ -1,0 +1,20 @@
+[
+  {
+    "question": "How many vacation days do employees get?",
+    "expected_keywords": ["15", "20", "25", "tenure", "years"],
+    "expected_sources": ["Company Vacation Policy"],
+    "should_not_contain": ["I don't know", "I cannot", "unclear"]
+  },
+  {
+    "question": "What is the remote work policy?",
+    "expected_keywords": ["days", "manager", "approval"],
+    "expected_sources": ["Remote Work Guidelines"],
+    "should_not_contain": []
+  },
+  {
+    "question": "What is the company's stance on quantum computing?",
+    "expected_keywords": ["don't have", "no information", "not found"],
+    "expected_sources": [],
+    "should_not_contain": ["quantum", "computing"]
+  }
+]

@@ -1,8 +1,8 @@
 {
-  "faithfulness": 0.45871212121212124,
-  "answer_relevancy": 0.8321964443132122,
-  "answer_correctness": 0.8595435950427437,
-  "average_score": 0.7168173868560257,
+  "faithfulness": 0.5212121212121212,
+  "answer_relevancy": 0.8471647187822978,
+  "answer_correctness": 0.8280085428911678,
+  "average_score": 0.7321284609618622,
   "passed": false,
   "per_question": [
     {
@@ -14,11 +14,11 @@
         "Benefits Guide - HeroForge Inc. Annual Leave and Paid Time Off\n\nEmployees are entitled to paid annual leave which increases with tenure at the company. Our generous PTO policy reflects our commitment ...",
         "Sick Leave: Employees receive 10 days of paid sick leave annually. Sick leave can be used for: Personal illness or injury, Medical appointments, Caring for immediate family members.\n\nRemote Work: Hero..."
       ],
-      "response": "Full-time employees receive 15 days of paid vacation per year [Source 1]. This vacation time accrues at a rate of 1.25 days per month and begins accruing from the employee's first day of employment [Source 1].",
+      "response": "Full-time employees receive 15 days of paid vacation per year [Source 1]. This vacation time accrues at a rate of 1.25 days per month and begins from the first day of employment [Source 1].",
       "reference": "Full-time employees receive 15 days of paid vacation per year, accruing at 1.25 days per month.",
       "faithfulness": 0.3333333333333333,
-      "answer_relevancy": 0.9150276319412742,
-      "answer_correctness": 0.8324085213598896
+      "answer_relevancy": 0.9150275349433635,
+      "answer_correctness": 0.8311644920359197
     },
     {
       "user_input": "How do I request time off?",
@@ -47,7 +47,7 @@
       "response": "Employees receive 10 days of paid sick leave annually [Source 1].",
       "reference": "Employees receive 10 days of paid sick leave per year.",
       "faithfulness": 1.0,
-      "answer_relevancy": 0.8586827394555931,
+      "answer_relevancy": 0.8586017728176886,
       "answer_correctness": 0.9836088336337518
     },
     {
@@ -60,9 +60,9 @@
       ],
       "response": "A doctor's note is required for sick leave absences that are over 3 consecutive days [Source 1].",
       "reference": "A doctor's note is required for absences over 3 consecutive days.",
-      "faithfulness": 0.5,
-      "answer_relevancy": 0.6553633988384068,
-      "answer_correctness": 0.9816964744656267
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.6448635199953254,
+      "answer_correctness": 0.9816959695658651
     },
     {
       "user_input": "How many personal days do employees get per year?",
@@ -84,11 +84,11 @@
       "retrieved_contexts": [
         "# Company Security Policy Last Updated: November 24, 2025 | Version 3.2 \n # OVERVIEW This document outlines security requirements for all employees. \n # PASSWORD REQUIREMENTS All employees must follow..."
       ],
-      "response": "You can report a security incident by:\n*   Emailing security@company.com [Source 1]\n*   Calling 555-123-4567 [Source 1]\n*   Using the portal at https://security.company.com/report [Source 1]\n\nSecurity incidents must be reported within 24 hours [Source 1].",
+      "response": "You can report a security incident by:\n*   **Emailing:** security@company.com [Source 1]\n*   **Calling:** 555-123-4567 [Source 1]\n*   **Using the portal:** https://security.company.com/report [Source 1]\n\nSecurity incidents must be reported within 24 hours [Source 1].",
       "reference": "Report security incidents to security@company.com or through the portal at https://security.company.com/report.",
       "faithfulness": 0.0,
       "answer_relevancy": 0.9884448534514496,
-      "answer_correctness": 0.7124260392089429
+      "answer_correctness": 0.7114081506535405
     },
     {
       "user_input": "What are the password requirements?",
@@ -113,8 +113,8 @@
       "response": "Unused vacation days can be carried over to the next calendar year, up to a maximum of 5 days [Source 1, Source 2]. Any days beyond this limit will be forfeited [Source 1]. Days beyond the carryover limit expire on December 31st [Source 2].",
       "reference": "Up to 5 days of unused vacation can be carried over to the next year.",
       "faithfulness": 0.0,
-      "answer_relevancy": 0.638979824715313,
-      "answer_correctness": 0.9453887401773862
+      "answer_relevancy": 0.7693069629468948,
+      "answer_correctness": 0.6953707457439124
     }
   ]
 }
