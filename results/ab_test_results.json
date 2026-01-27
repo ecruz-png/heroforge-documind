@@ -1,0 +1,12 @@
+[
+  {
+    "model": "GPT-4o-mini (Production)",
+    "faithfulness": 0.793939393939394,
+    "answer_relevancy": 0.8631023250399816,
+    "answer_correctness": 0.8916427508988747,
+    "average_score": 0.8495614899594167,
+    "passed": true,
+    "time_seconds": 29.86,
+    "timestamp": "2026-01-27T04:39:07.490655"
+  }
+]

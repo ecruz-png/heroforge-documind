@@ -34,8 +34,8 @@ from supabase import create_client, Client
 
 # Support both module and direct execution
 try:
-    from .search import search_documents, hybrid_search, get_query_embedding
-    from .qa_pipeline import (
+    from documind.rag.search import search_documents, hybrid_search, get_query_embedding
+    from documind.rag.qa_pipeline import (
         MODELS,
         MODEL_INFO,
         assemble_context,
@@ -249,7 +249,8 @@ class ProductionQA:
 
             # Term frequency boost
             term_matches = sum(1 for term in query_terms if term in content)
-            term_boost = min(term_matches / max(len(query_terms), 1) * 0.1, 0.1)
+            term_boost = min(
+                term_matches / max(len(query_terms), 1) * 0.1, 0.1)
 
             # Length penalty (prefer medium-length chunks)
             content_len = len(content)
@@ -262,7 +263,8 @@ class ProductionQA:
             doc["final_score"] = base_score + term_boost + length_boost
 
         # Sort by final score
-        results.sort(key=lambda x: x.get("final_score", x.get("similarity", 0)), reverse=True)
+        results.sort(key=lambda x: x.get(
+            "final_score", x.get("similarity", 0)), reverse=True)
 
         return results
 
@@ -367,7 +369,8 @@ class ProductionQA:
         timing["total"] = time.perf_counter() - start_time
 
         # Step 5: Extract cited sources
-        cited_sources = self._extract_cited_sources(answer, documents, citation_map)
+        cited_sources = self._extract_cited_sources(
+            answer, documents, citation_map)
 
         # Step 6: Format response
         result = {
@@ -398,7 +401,8 @@ class ProductionQA:
         word_count = len(words)
 
         # Complex indicators
-        complex_words = ["compare", "analyze", "explain", "difference", "relationship"]
+        complex_words = ["compare", "analyze",
+                         "explain", "difference", "relationship"]
         has_complex_terms = any(w.lower() in complex_words for w in words)
 
         if word_count > 15 or has_complex_terms:
@@ -611,7 +615,8 @@ ANSWER (remember to cite sources with [Source X]):"""
 
         if parallel:
             with ThreadPoolExecutor(max_workers=len(resolved_models)) as executor:
-                futures = [executor.submit(query_model, m) for m in resolved_models]
+                futures = [executor.submit(query_model, m)
+                           for m in resolved_models]
                 for future in as_completed(futures, timeout=timeout + 10):
                     try:
                         model, result = future.result()
@@ -662,7 +667,8 @@ ANSWER (remember to cite sources with [Source X]):"""
             return analysis
 
         # Find fastest/slowest
-        by_latency = sorted(valid_results.items(), key=lambda x: x[1]["latency_ms"])
+        by_latency = sorted(valid_results.items(),
+                            key=lambda x: x[1]["latency_ms"])
         analysis["fastest_model"] = by_latency[0][0]
         analysis["slowest_model"] = by_latency[-1][0]
 
@@ -765,7 +771,8 @@ ANSWER (remember to cite sources with [Source X]):"""
         # Email addresses
         text = re.sub(r"[\w\.-]+@[\w\.-]+\.\w+", "[REDACTED_EMAIL]", text)
         # Phone numbers
-        text = re.sub(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b", "[REDACTED_PHONE]", text)
+        text = re.sub(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b",
+                      "[REDACTED_PHONE]", text)
         # SSN
         text = re.sub(r"\b\d{3}-\d{2}-\d{4}\b", "[REDACTED_SSN]", text)
         return text
@@ -833,7 +840,8 @@ ANSWER (remember to cite sources with [Source X]):"""
                 }
 
             # Calculate performance metrics
-            response_times = [log.get("response_time", 0) for log in logs if log.get("response_time")]
+            response_times = [log.get("response_time", 0)
+                              for log in logs if log.get("response_time")]
             performance = {}
             if response_times:
                 sorted_times = sorted(response_times)
@@ -850,12 +858,14 @@ ANSWER (remember to cite sources with [Source X]):"""
                 }
 
             # Model usage statistics
-            model_stats = defaultdict(lambda: {"count": 0, "latencies": [], "fallback_count": 0})
+            model_stats = defaultdict(
+                lambda: {"count": 0, "latencies": [], "fallback_count": 0})
             for log in logs:
                 model = log.get("model", "unknown")
                 model_stats[model]["count"] += 1
                 if log.get("response_time"):
-                    model_stats[model]["latencies"].append(log["response_time"])
+                    model_stats[model]["latencies"].append(
+                        log["response_time"])
                 if log.get("fallback_used"):
                     model_stats[model]["fallback_count"] += 1
 
@@ -885,7 +895,8 @@ ANSWER (remember to cite sources with [Source X]):"""
             ]
 
             # Generate insights
-            insights = self._generate_insights(len(logs), performance, models, popular_terms)
+            insights = self._generate_insights(
+                len(logs), performance, models, popular_terms)
 
             return {
                 "total_queries": len(logs),
@@ -924,18 +935,22 @@ ANSWER (remember to cite sources with [Source X]):"""
 
         # Query volume insight
         if total_queries > 0:
-            insights.append(f"Processed {total_queries} queries in the analysis period.")
+            insights.append(
+                f"Processed {total_queries} queries in the analysis period.")
 
         # Performance insights
         if performance:
             avg = performance.get("avg_response_time", 0)
             p95 = performance.get("p95_response_time", 0)
             if avg < 2:
-                insights.append(f"Excellent performance: average response time is {avg:.2f}s.")
+                insights.append(
+                    f"Excellent performance: average response time is {avg:.2f}s.")
             elif avg < 3:
-                insights.append(f"Good performance: 95% of queries complete in under {p95:.2f}s.")
+                insights.append(
+                    f"Good performance: 95% of queries complete in under {p95:.2f}s.")
             else:
-                insights.append(f"Performance attention needed: average response time is {avg:.2f}s.")
+                insights.append(
+                    f"Performance attention needed: average response time is {avg:.2f}s.")
 
         # Model insights
         if models:
@@ -1117,7 +1132,8 @@ def _display_result(result: Dict[str, Any]) -> None:
         print(f"  Sources ({len(sources)}):")
         for src in sources:
             cited = "*" if src.get("was_cited") else " "
-            print(f"\n    [{cited}] {src.get('document', 'Unknown')} (chunk {src.get('chunk_index', 0)})")
+            print(
+                f"\n    [{cited}] {src.get('document', 'Unknown')} (chunk {src.get('chunk_index', 0)})")
             print(f"        Similarity: {src.get('similarity', 0):.4f}")
             preview = src.get("preview", "")[:80]
             print(f"        Preview: {preview}...")
@@ -1139,7 +1155,8 @@ def _display_comparison(result: Dict[str, Any]) -> None:
     """Display model comparison results."""
     print(f"\n  Sources ({len(result.get('sources', []))}):")
     for i, src in enumerate(result.get("sources", []), 1):
-        print(f"    [{i}] {src.get('document')} (sim: {src.get('similarity', 0):.2f})")
+        print(
+            f"    [{i}] {src.get('document')} (sim: {src.get('similarity', 0):.2f})")
 
     for model, model_result in result.get("results", {}).items():
         info = MODEL_INFO.get(model, {})
@@ -1180,7 +1197,8 @@ def _display_analytics(analytics: Dict[str, Any]) -> None:
 
     date_range = analytics.get("date_range", {})
     if date_range:
-        print(f"  Period: {date_range.get('start', 'N/A')[:10]} to {date_range.get('end', 'N/A')[:10]}")
+        print(
+            f"  Period: {date_range.get('start', 'N/A')[:10]} to {date_range.get('end', 'N/A')[:10]}")
 
     # Performance
     perf = analytics.get("performance", {})
@@ -1196,14 +1214,16 @@ def _display_analytics(analytics: Dict[str, Any]) -> None:
     if models:
         print(f"\n  Model Usage:")
         for model, stats in models.items():
-            print(f"    {model}: {stats.get('usage_count', 0)} queries ({stats.get('usage_percentage', 0):.1f}%)")
+            print(
+                f"    {model}: {stats.get('usage_count', 0)} queries ({stats.get('usage_percentage', 0):.1f}%)")
 
     # Popular queries
     popular = analytics.get("popular_queries", [])
     if popular:
         print(f"\n  Popular Query Terms:")
         for item in popular[:5]:
-            print(f"    - {item.get('term', '')}: {item.get('count', 0)} occurrences")
+            print(
+                f"    - {item.get('term', '')}: {item.get('count', 0)} occurrences")
 
     # Insights
     insights = analytics.get("insights", [])

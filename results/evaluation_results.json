@@ -1,0 +1,120 @@
+{
+  "faithfulness": 0.45871212121212124,
+  "answer_relevancy": 0.8321964443132122,
+  "answer_correctness": 0.8595435950427437,
+  "average_score": 0.7168173868560257,
+  "passed": false,
+  "per_question": [
+    {
+      "user_input": "How many vacation days do full-time employees receive per year?",
+      "retrieved_contexts": [
+        "Employee Handbook - HeroForge Inc. Section 5: Time Off and Leave Policies\n\nVacation Policy: All full-time employees receive 15 days of paid vacation per year. Vacation accrues at a rate of 1.25 days p...",
+        "Requesting Vacation: Submit vacation requests through the HR portal at least two weeks in advance. Requests are approved based on business needs and team coverage. During peak periods (Q4, product lau...",
+        "HR Policies and Procedures - Time Off Benefits\n\nOur company offers comprehensive time-off benefits including vacation, sick leave, and personal days. We believe that well-rested employees are more pro...",
+        "Benefits Guide - HeroForge Inc. Annual Leave and Paid Time Off\n\nEmployees are entitled to paid annual leave which increases with tenure at the company. Our generous PTO policy reflects our commitment ...",
+        "Sick Leave: Employees receive 10 days of paid sick leave annually. Sick leave can be used for: Personal illness or injury, Medical appointments, Caring for immediate family members.\n\nRemote Work: Hero..."
+      ],
+      "response": "Full-time employees receive 15 days of paid vacation per year [Source 1]. This vacation time accrues at a rate of 1.25 days per month and begins accruing from the employee's first day of employment [Source 1].",
+      "reference": "Full-time employees receive 15 days of paid vacation per year, accruing at 1.25 days per month.",
+      "faithfulness": 0.3333333333333333,
+      "answer_relevancy": 0.9150276319412742,
+      "answer_correctness": 0.8324085213598896
+    },
+    {
+      "user_input": "How do I request time off?",
+      "retrieved_contexts": [
+        "HR Policies and Procedures - Time Off Benefits\n\nOur company offers comprehensive time-off benefits including vacation, sick leave, and personal days. We believe that well-rested employees are more pro...",
+        "Requesting Vacation: Submit vacation requests through the HR portal at least two weeks in advance. Requests are approved based on business needs and team coverage. During peak periods (Q4, product lau...",
+        "Leave of Absence: For extended leave (medical, family, sabbatical), contact HR directly to discuss options and eligibility requirements.\n\nExpense Reimbursement: Business expenses must be submitted wit...",
+        "Sick Leave: Notify your manager as early as possible. No advance approval needed. Doctor's note required for absences over 3 consecutive days.\n\nPersonal Days: 3 personal days per year. Can be used for...",
+        "Sick Leave: Employees receive 10 days of paid sick leave annually. Sick leave can be used for: Personal illness or injury, Medical appointments, Caring for immediate family members.\n\nRemote Work: Hero..."
+      ],
+      "response": "To request time off, all requests must be submitted through the HR portal [Source 1].\n\nFor vacation requests, submit them at least two weeks in advance [Source 1, Source 2]. Manager approval is required [Source 1]. It is also recommended to check the team calendar for conflicts [Source 1]. For longer vacations of 5 or more days, a 4-week notice is required [Source 1]. Vacation requests may be limited during peak periods such as Q4 and product launches [Source 2].\n\nFor sick leave, notify your manager as early as possible, and no advance approval is needed [Source 4]. A doctor's note is required for absences over 3 consecutive days [Source 4].\n\nFor personal days, 48-hour advance notice is preferred [Source 4].\n\nFor extended leave such as medical, family, or sabbatical, contact HR directly to discuss options and eligibility requirements [Source 3].",
+      "reference": "All time off requests must be submitted through the HR portal at least two weeks in advance.",
+      "faithfulness": 0.6363636363636364,
+      "answer_relevancy": 0.8961884310475817,
+      "answer_correctness": 0.933415409814442
+    },
+    {
+      "user_input": "How many sick leave days do employees receive per year?",
+      "retrieved_contexts": [
+        "Sick Leave: Employees receive 10 days of paid sick leave annually. Sick leave can be used for: Personal illness or injury, Medical appointments, Caring for immediate family members.\n\nRemote Work: Hero...",
+        "Sick Leave: Notify your manager as early as possible. No advance approval needed. Doctor's note required for absences over 3 consecutive days.\n\nPersonal Days: 3 personal days per year. Can be used for...",
+        "HR Policies and Procedures - Time Off Benefits\n\nOur company offers comprehensive time-off benefits including vacation, sick leave, and personal days. We believe that well-rested employees are more pro...",
+        "Employee Handbook - HeroForge Inc. Section 5: Time Off and Leave Policies\n\nVacation Policy: All full-time employees receive 15 days of paid vacation per year. Vacation accrues at a rate of 1.25 days p...",
+        "Leave of Absence: For extended leave (medical, family, sabbatical), contact HR directly to discuss options and eligibility requirements.\n\nExpense Reimbursement: Business expenses must be submitted wit..."
+      ],
+      "response": "Employees receive 10 days of paid sick leave annually [Source 1].",
+      "reference": "Employees receive 10 days of paid sick leave per year.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.8586827394555931,
+      "answer_correctness": 0.9836088336337518
+    },
+    {
+      "user_input": "When is a doctor's note required for sick leave?",
+      "retrieved_contexts": [
+        "Sick Leave: Notify your manager as early as possible. No advance approval needed. Doctor's note required for absences over 3 consecutive days.\n\nPersonal Days: 3 personal days per year. Can be used for...",
+        "Leave of Absence: For extended leave (medical, family, sabbatical), contact HR directly to discuss options and eligibility requirements.\n\nExpense Reimbursement: Business expenses must be submitted wit...",
+        "Sick Leave: Employees receive 10 days of paid sick leave annually. Sick leave can be used for: Personal illness or injury, Medical appointments, Caring for immediate family members.\n\nRemote Work: Hero...",
+        "HR Policies and Procedures - Time Off Benefits\n\nOur company offers comprehensive time-off benefits including vacation, sick leave, and personal days. We believe that well-rested employees are more pro..."
+      ],
+      "response": "A doctor's note is required for sick leave absences that are over 3 consecutive days [Source 1].",
+      "reference": "A doctor's note is required for absences over 3 consecutive days.",
+      "faithfulness": 0.5,
+      "answer_relevancy": 0.6553633988384068,
+      "answer_correctness": 0.9816964744656267
+    },
+    {
+      "user_input": "How many personal days do employees get per year?",
+      "retrieved_contexts": [
+        "HR Policies and Procedures - Time Off Benefits\n\nOur company offers comprehensive time-off benefits including vacation, sick leave, and personal days. We believe that well-rested employees are more pro...",
+        "Benefits Guide - HeroForge Inc. Annual Leave and Paid Time Off\n\nEmployees are entitled to paid annual leave which increases with tenure at the company. Our generous PTO policy reflects our commitment ...",
+        "Requesting Vacation: Submit vacation requests through the HR portal at least two weeks in advance. Requests are approved based on business needs and team coverage. During peak periods (Q4, product lau...",
+        "Employee Handbook - HeroForge Inc. Section 5: Time Off and Leave Policies\n\nVacation Policy: All full-time employees receive 15 days of paid vacation per year. Vacation accrues at a rate of 1.25 days p...",
+        "Sick Leave: Notify your manager as early as possible. No advance approval needed. Doctor's note required for absences over 3 consecutive days.\n\nPersonal Days: 3 personal days per year. Can be used for..."
+      ],
+      "response": "Employees receive 3 personal days per year [Source 5].",
+      "reference": "Employees receive 3 personal days per year that can be used for any reason.",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.9902821021078304,
+      "answer_correctness": 0.7270804655900334
+    },
+    {
+      "user_input": "How do I report a security incident?",
+      "retrieved_contexts": [
+        "# Company Security Policy Last Updated: November 24, 2025 | Version 3.2 \n # OVERVIEW This document outlines security requirements for all employees. \n # PASSWORD REQUIREMENTS All employees must follow..."
+      ],
+      "response": "You can report a security incident by:\n*   Emailing security@company.com [Source 1]\n*   Calling 555-123-4567 [Source 1]\n*   Using the portal at https://security.company.com/report [Source 1]\n\nSecurity incidents must be reported within 24 hours [Source 1].",
+      "reference": "Report security incidents to security@company.com or through the portal at https://security.company.com/report.",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.9884448534514496,
+      "answer_correctness": 0.7124260392089429
+    },
+    {
+      "user_input": "What are the password requirements?",
+      "retrieved_contexts": [
+        "# Company Security Policy Last Updated: November 24, 2025 | Version 3.2 \n # OVERVIEW This document outlines security requirements for all employees. \n # PASSWORD REQUIREMENTS All employees must follow..."
+      ],
+      "response": "All employees must follow these password guidelines:\n*   Minimum 12 characters [Source 1]\n*   Include uppercase, lowercase, numbers, and symbols [Source 1]\n*   Change passwords every 90 days [Source 1]\n*   No password reuse for 12 previous passwords [Source 1]",
+      "reference": "Passwords must be at least 12 characters and include uppercase, lowercase, numbers, and symbols. Passwords must be changed every 90 days.",
+      "faithfulness": 0.2,
+      "answer_relevancy": 0.7146025729482488,
+      "answer_correctness": 0.7603242760918771
+    },
+    {
+      "user_input": "How many vacation days can be carried over to the next year?",
+      "retrieved_contexts": [
+        "Requesting Vacation: Submit vacation requests through the HR portal at least two weeks in advance. Requests are approved based on business needs and team coverage. During peak periods (Q4, product lau...",
+        "Benefits Guide - HeroForge Inc. Annual Leave and Paid Time Off\n\nEmployees are entitled to paid annual leave which increases with tenure at the company. Our generous PTO policy reflects our commitment ...",
+        "Employee Handbook - HeroForge Inc. Section 5: Time Off and Leave Policies\n\nVacation Policy: All full-time employees receive 15 days of paid vacation per year. Vacation accrues at a rate of 1.25 days p...",
+        "Sick Leave: Notify your manager as early as possible. No advance approval needed. Doctor's note required for absences over 3 consecutive days.\n\nPersonal Days: 3 personal days per year. Can be used for...",
+        "HR Policies and Procedures - Time Off Benefits\n\nOur company offers comprehensive time-off benefits including vacation, sick leave, and personal days. We believe that well-rested employees are more pro..."
+      ],
+      "response": "Unused vacation days can be carried over to the next calendar year, up to a maximum of 5 days [Source 1, Source 2]. Any days beyond this limit will be forfeited [Source 1]. Days beyond the carryover limit expire on December 31st [Source 2].",
+      "reference": "Up to 5 days of unused vacation can be carried over to the next year.",
+      "faithfulness": 0.0,
+      "answer_relevancy": 0.638979824715313,
+      "answer_correctness": 0.9453887401773862
+    }
+  ]
+}

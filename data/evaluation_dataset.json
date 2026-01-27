@@ -1,0 +1,42 @@
+[
+  {
+    "question": "How many vacation days do full-time employees receive per year?",
+    "type": "factual",
+    "ground_truth": "Full-time employees receive 15 days of paid vacation per year, accruing at 1.25 days per month."
+  },
+  {
+    "question": "How do I request time off?",
+    "type": "procedural",
+    "ground_truth": "All time off requests must be submitted through the HR portal at least two weeks in advance."
+  },
+  {
+    "question": "How many sick leave days do employees receive per year?",
+    "type": "factual",
+    "ground_truth": "Employees receive 10 days of paid sick leave per year."
+  },
+  {
+    "question": "When is a doctor's note required for sick leave?",
+    "type": "procedural",
+    "ground_truth": "A doctor's note is required for absences over 3 consecutive days."
+  },
+  {
+    "question": "How many personal days do employees get per year?",
+    "type": "factual",
+    "ground_truth": "Employees receive 3 personal days per year that can be used for any reason."
+  },
+  {
+    "question": "How do I report a security incident?",
+    "type": "procedural",
+    "ground_truth": "Report security incidents to security@company.com or through the portal at https://security.company.com/report."
+  },
+  {
+    "question": "What are the password requirements?",
+    "type": "factual",
+    "ground_truth": "Passwords must be at least 12 characters and include uppercase, lowercase, numbers, and symbols. Passwords must be changed every 90 days."
+  },
+  {
+    "question": "How many vacation days can be carried over to the next year?",
+    "type": "factual",
+    "ground_truth": "Up to 5 days of unused vacation can be carried over to the next year."
+  }
+]
